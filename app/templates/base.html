@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}BarberSaaS{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- GOOGLE FONT -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header container">
+        <h1><span>Barber</span>SaaS</h1>
+
+        {% if current_user.is_authenticated %}
+            <nav>
+                {% if current_user.is_admin_global() %}
+                    <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+                {% else %}
+                    <a href="{{ url_for('tenant.dashboard') }}">Dashboard</a>
+                {% endif %}
+                |
+                <a href="{{ url_for('auth.logout') }}">Sair</a>
+            </nav>
+        {% endif %}
+    </header>
+
+    <!-- CONTEÚDO -->
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        © {{ now().year }} BarberSaaS • Todos os direitos reservados
+    </footer>
+
+</body>
+</html>

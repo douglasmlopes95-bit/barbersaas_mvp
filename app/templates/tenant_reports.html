@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios | Barbearia{% endblock %}
+
+{% block content %}
+
+<div class="header">
+    <div>
+        <h1>Relatórios <span>Financeiros</span></h1>
+        <p style="color: var(--text-muted); font-size: 14px;">
+            Visão estratégica e gerencial do desempenho da barbearia
+        </p>
+    </div>
+</div>
+
+<!-- ============================= -->
+<!-- VOLTAR AO DASHBOARD -->
+<!-- ============================= -->
+<div style="margin-bottom:20px;">
+    <a href="{{ url_for('tenant.dashboard') }}" class="btn btn-sm btn-gold">
+        ← Voltar ao Dashboard
+    </a>
+</div>
+
+<!-- ============================= -->
+<!-- FILTRO DE PERÍODO -->
+<!-- ============================= -->
+<div class="card" style="margin-bottom: 28px;">
+    <form method="GET"
+          style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+
+        <div class="form-group">
+            <label>Data início</label>
+            <input type="date"
+                   name="start"
+                   value="{{ start_date.strftime('%Y-%m-%d') }}">
+        </div>
+
+        <div class="form-group">
+            <label>Data fim</label>
+            <input type="date"
+                   name="end"
+                   value="{{ end_date.strftime('%Y-%m-%d') }}">
+        </div>
+
+        <button class="btn btn-gold">
+            Filtrar
+        </button>
+    </form>
+</div>
+
+<!-- ============================= -->
+<!-- KPIs -->
+<!-- ============================= -->
+<div class="cards">
+
+    <div class="card success">
+        <h3>Faturamento</h3>
+        <p>R$ {{ "%.2f"|format(faturamento) }}</p>
+    </div>
+
+    <div class="card danger">
+        <h3>Despesas</h3>
+        <p>R$ {{ "%.2f"|format(despesas) }}</p>
+    </div>
+
+    <div class="card warning">
+        <h3>Lucro</h3>
+        <p>R$ {{ "%.2f"|format(lucro) }}</p>
+    </div>
+
+    <div class="card info">
+        <h3>Ticket Médio</h3>
+        <p>R$ {{ "%.2f"|format(ticket_medio) }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Agendamentos</h3>
+        <p>{{ total_agendamentos }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Saldo em Caixa</h3>
+        <p>R$ {{ "%.2f"|format(saldo_caixa) }}</p>
+    </div>
+
+</div>
+
+<!-- ============================= -->
+<!-- GRÁFICO FINANCEIRO -->
+<!-- ============================= -->
+<div class="card" style="margin-bottom: 32px;">
+    <h3 style="margin-bottom: 14px;">
+        Faturamento × Despesas × Lucro
+    </h3>
+
+    <canvas id="financeChart" height="90"></canvas>
+</div>
+
+<!-- ============================= -->
+<!-- TOP SERVIÇOS -->
+<!-- ============================= -->
+<div class="card">
+    <h3 style="margin-bottom: 16px;">
+        Serviços Mais Vendidos
+    </h3>
+
+    {% if top_services %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Serviço</th>
+                    <th>Total de Agendamentos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in top_services %}
+                <tr>
+                    <td>{{ service[0] }}</td>
+                    <td>{{ service[1] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-muted);">
+            Nenhum dado encontrado para o período selecionado.
+        </p>
+    {% endif %}
+</div>
+
+<!-- ============================= -->
+<!-- CHART.JS -->
+<!-- ============================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const ctx = document.getElementById('financeChart');
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Faturamento', 'Despesas', 'Lucro'],
+        datasets: [{
+            data: [
+                {{ faturamento }},
+                {{ despesas }},
+                {{ lucro }}
+            ],
+            backgroundColor: [
+                '#2ecc71',
+                '#ff4d4d',
+                '#f1c40f'
+            ],
+            borderRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'R$ ' + value.toFixed(2);
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+
+{% endblock %}

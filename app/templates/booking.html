@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar | {{ tenant.nome }}{% endblock %}
+
+{% block content %}
+
+<div class="booking-header">
+    <h1>Agendar em <span>{{ tenant.nome }}</span></h1>
+    <p style="color:#9a9a9a;">
+        Escolha o serviço e um horário disponível
+    </p>
+</div>
+
+<div class="card" style="max-width:600px; margin:0 auto;">
+
+    <form method="POST">
+
+        <!-- SERVIÇO -->
+        <div class="form-group">
+            <label>Serviço</label>
+            <select name="service_id" required>
+                <option value="">Selecione um serviço</option>
+                {% for service in services %}
+                    <option value="{{ service.id }}">
+                        {{ service.nome }} — R$ {{ "%.2f"|format(service.preco) }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- HORÁRIO DISPONÍVEL -->
+        <div class="form-group">
+            <label>Horário disponível</label>
+            <select name="slot_id" required>
+                <option value="">Selecione um horário</option>
+                {% for slot in slots %}
+                    <option value="{{ slot.id }}">
+                        {{ slot.data.strftime("%d/%m/%Y") }}
+                        às
+                        {{ slot.hora.strftime("%H:%M") }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- CLIENTE -->
+        <div class="form-group">
+            <label>Seu nome</label>
+            <input
+                type="text"
+                name="cliente_nome"
+                placeholder="Ex: João Silva"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label>WhatsApp</label>
+            <input
+                type="text"
+                name="cliente_whatsapp"
+                placeholder="(DDD) 9xxxx-xxxx"
+                required
+            >
+        </div>
+
+        <button class="btn btn-gold" style="width:100%; margin-top:10px;">
+            Confirmar Agendamento
+        </button>
+
+    </form>
+
+</div>
+
+<div style="text-align:center; margin-top:30px; font-size:13px; color:#9a9a9a;">
+    Sistema de agendamento profissional • BarberSaaS
+</div>
+
+{% endblock %}

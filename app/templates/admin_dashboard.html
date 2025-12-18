@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Admin | BarberSaaS{% endblock %}
+
+{% block content %}
+
+<div class="header">
+    <h1>Painel <span>Admin</span></h1>
+</div>
+
+<!-- CARDS -->
+<div class="cards">
+    <div class="card">
+        <h3>Barbearias</h3>
+        <p>{{ tenants|length }}</p>
+    </div>
+</div>
+
+<!-- FORM CRIAR BARBEARIA -->
+<div class="card" style="margin-bottom:30px;">
+    <h3 style="margin-bottom:15px;">Nova Barbearia</h3>
+
+    <form method="POST">
+
+        <div class="form-group">
+            <label>Nome da Barbearia</label>
+            <input type="text" name="nome" placeholder="Ex: Barbearia Central" required>
+        </div>
+
+        <div class="form-group">
+            <label>Slug (URL)</label>
+            <input type="text" name="slug" placeholder="barbearia-central" required>
+        </div>
+
+        <div class="form-group">
+            <label>E-mail do Administrador</label>
+            <input type="email" name="email" placeholder="admin@barbearia.com" required>
+        </div>
+
+        <div class="form-group">
+            <label>Senha</label>
+            <input type="password" name="senha" required>
+        </div>
+
+        <button class="btn btn-gold">Criar Barbearia</button>
+
+    </form>
+</div>
+
+<!-- LISTA DE BARBEARIAS -->
+<div class="card">
+    <h3 style="margin-bottom:15px;">Barbearias Cadastradas</h3>
+
+    {% if tenants %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Link Público</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tenant in tenants %}
+            <tr>
+                <td>{{ tenant.nome }}</td>
+                <td>{{ tenant.slug }}</td>
+                <td>
+                    {% if tenant.ativo %}
+                        <span style="color:#2ecc71;">Ativa</span>
+                    {% else %}
+                        <span style="color:#ff4d4d;">Inativa</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/{{ tenant.slug }}/agendar" target="_blank">
+                        Acessar
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="color:#9a9a9a;">Nenhuma barbearia cadastrada ainda.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

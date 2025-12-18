@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>BarberSaaS — Gestão Completa e Gratuita para Barbearias</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- GOOGLE FONT -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0b0b0b;
+            --card: #141414;
+            --gold: #f1c40f;
+            --text: #ffffff;
+            --muted: #9a9a9a;
+            --danger: #ff4d4d;
+            --success: #2ecc71;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at top, #1a1a1a, #000);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 70px 24px;
+        }
+
+        /* HERO */
+        .hero {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .hero h1 {
+            font-size: 44px;
+            line-height: 1.2;
+        }
+
+        .hero h1 span {
+            color: var(--gold);
+        }
+
+        .hero p {
+            color: var(--muted);
+            margin: 22px 0;
+            font-size: 18px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: .3s;
+        }
+
+        .btn-gold {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .btn-gold:hover {
+            opacity: .85;
+        }
+
+        .hero-img {
+            background: url("{{ url_for('static', filename='img/dashboard.png') }}")
+                        center / cover no-repeat;
+            border-radius: 18px;
+            height: 360px;
+            box-shadow: 0 30px 70px rgba(0,0,0,.7);
+        }
+
+        /* SECTIONS */
+        .section {
+            margin-top: 110px;
+        }
+
+        .section h2 {
+            font-size: 34px;
+            margin-bottom: 14px;
+        }
+
+        .section h2 span {
+            color: var(--gold);
+        }
+
+        .section p {
+            color: var(--muted);
+            max-width: 760px;
+            font-size: 17px;
+        }
+
+        /* GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 22px;
+            margin-top: 36px;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #161616, #0f0f0f);
+            padding: 28px;
+            border-radius: 16px;
+            border: 1px solid #1f1f1f;
+        }
+
+        .card h3 {
+            color: var(--gold);
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .card p {
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        /* CTA */
+        .cta {
+            text-align: center;
+            background: linear-gradient(180deg, #141414, #0a0a0a);
+            padding: 90px 24px;
+            border-radius: 26px;
+            margin-top: 120px;
+        }
+
+        .cta h2 {
+            font-size: 38px;
+            margin-bottom: 18px;
+        }
+
+        .cta p {
+            color: var(--muted);
+            margin-bottom: 34px;
+            font-size: 18px;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-img {
+                height: 260px;
+            }
+
+            .hero h1 {
+                font-size: 34px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="container hero">
+    <div>
+        <h1>
+            Sistema <span>completo</span> para barbearias<br>
+            gestão, agenda e financeiro
+        </h1>
+        <p>
+            O BarberSaaS é uma plataforma gratuita que ajuda barbeiros
+            a organizarem o negócio, controlarem o caixa
+            e permitirem que clientes agendem seus cortes online.
+        </p>
+
+        <a href="https://wa.me/5524999721742?text=Oi%21%20Vi%20a%20p%C3%A1gina%20do%20BarberSaaS%20e%20gostaria%20de%20cadastrar%20minha%20barbearia%20gratuitamente."
+           class="btn btn-gold"
+           target="_blank">
+            Começar agora (100% grátis)
+        </a>
+    </div>
+
+    <div class="hero-img"></div>
+</div>
+
+<!-- PARA QUEM É -->
+<div class="container section">
+    <h2>Para <span>dono</span> e para <span>cliente</span></h2>
+    <p>
+        O BarberSaaS resolve os dois lados da barbearia:
+        a gestão do negócio e a experiência do cliente.
+    </p>
+
+    <div class="grid">
+        <div class="card">
+            <h3>👤 Para o Cliente</h3>
+            <p>
+                O cliente pode acessar a página da barbearia,
+                escolher o barbeiro, o serviço e agendar o corte
+                no horário disponível — tudo online.
+            </p>
+        </div>
+
+        <div class="card">
+            <h3>💈 Para o Dono</h3>
+            <p>
+                O dono controla barbeiros, serviços, horários,
+                agendamentos, caixa, despesas e relatórios
+                em um único sistema.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- FUNCIONALIDADES -->
+<div class="container section">
+    <h2>O que o <span>BarberSaaS faz</span></h2>
+    <p>
+        Todas as funcionalidades essenciais para profissionalizar
+        sua barbearia — sem mensalidade.
+    </p>
+
+    <div class="grid">
+        <div class="card">
+            <h3>📅 Agendamento Online</h3>
+            <p>Clientes agendam cortes escolhendo barbeiro, serviço e horário.</p>
+        </div>
+
+        <div class="card">
+            <h3>✂️ Cadastro de Barbeiros</h3>
+            <p>Cadastre vários barbeiros, com agenda e horários próprios.</p>
+        </div>
+
+        <div class="card">
+            <h3>🧾 Cadastro de Serviços</h3>
+            <p>Defina serviços, preços e duração de cada atendimento.</p>
+        </div>
+
+        <div class="card">
+            <h3>⏱️ Controle de Horários</h3>
+            <p>Gere, bloqueie ou libere horários facilmente.</p>
+        </div>
+
+        <div class="card">
+            <h3>💰 Controle de Caixa</h3>
+            <p>Abertura, fechamento, entradas, saídas e ajustes manuais.</p>
+        </div>
+
+        <div class="card">
+            <h3>📉 Despesas</h3>
+            <p>Registre despesas por categoria e acompanhe os custos.</p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Relatórios</h3>
+            <p>Faturamento, lucro, ticket médio, serviços mais vendidos.</p>
+        </div>
+
+        <div class="card">
+            <h3>🔐 Sistema Seguro</h3>
+            <p>Login por usuário, controle por barbearia e permissões.</p>
+        </div>
+    </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="container cta">
+    <h2>Organize sua barbearia de forma profissional</h2>
+    <p>
+        Sem mensalidade • Sem cartão • Sem limite de uso<br>
+        Um sistema feito para ajudar barbeiros a crescerem.
+    </p>
+
+    <a href="https://wa.me/5524999721742?text=Oi%21%20Vi%20a%20p%C3%A1gina%20do%20BarberSaaS%20e%20quero%20cadastrar%20minha%20barbearia."
+       class="btn btn-gold"
+       target="_blank">
+        Quero usar o BarberSaaS grátis
+    </a>
+</div>
+
+</body>
+</html>

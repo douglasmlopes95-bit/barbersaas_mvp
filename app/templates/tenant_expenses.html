@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas | Barbearia{% endblock %}
+
+{% block content %}
+
+<div class="header">
+    <h1>Despesas <span>Financeiro</span></h1>
+    <p style="color:#9a9a9a;">
+        Controle e acompanhamento das despesas da barbearia
+    </p>
+</div>
+
+<!-- ============================= -->
+<!-- VOLTAR AO DASHBOARD -->
+<!-- ============================= -->
+<div style="margin-bottom:20px;">
+    <a href="{{ url_for('tenant.dashboard') }}" class="btn btn-sm btn-gold">
+        ← Voltar ao Dashboard
+    </a>
+</div>
+
+<!-- ============================= -->
+<!-- RESUMO DE DESPESAS -->
+<!-- ============================= -->
+<div class="cards">
+    <div class="card">
+        <h3>Total do Mês</h3>
+        <p style="color:#ff4d4d;">
+            R$ {{ "%.2f"|format(total_mes or 0) }}
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>Total Geral</h3>
+        <p style="color:#ff4d4d;">
+            R$ {{ "%.2f"|format(total_geral or 0) }}
+        </p>
+    </div>
+</div>
+
+<!-- ============================= -->
+<!-- CADASTRAR DESPESA -->
+<!-- ============================= -->
+{% if current_user.is_tenant_admin() %}
+<div class="card" style="max-width:500px;">
+    <h3>Nova Despesa</h3>
+
+    <form method="POST" action="{{ url_for('expenses.create') }}">
+
+        <div class="form-group">
+            <label>Descrição</label>
+            <input type="text" name="descricao" required>
+        </div>
+
+        <div class="form-group">
+            <label>Categoria</label>
+            <select name="categoria">
+                <option value="ALUGUEL">Aluguel</option>
+                <option value="FUNCIONARIOS">Funcionários</option>
+                <option value="FORNECEDORES">Fornecedores</option>
+                <option value="MARKETING">Marketing</option>
+                <option value="IMPOSTOS">Impostos</option>
+                <option value="OUTROS">Outros</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" step="0.01" name="valor" required>
+        </div>
+
+        <div class="form-group">
+            <label>Data</label>
+            <input type="date" name="data" required>
+        </div>
+
+        <button class="btn btn-gold">Cadastrar Despesa</button>
+    </form>
+</div>
+{% endif %}
+
+<!-- ============================= -->
+<!-- LISTAGEM DE DESPESAS -->
+<!-- ============================= -->
+<div class="card">
+    <h3>Despesas Registradas</h3>
+
+    {% if despesas %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                {% if current_user.is_tenant_admin() %}
+                <th>Ações</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for despesa in despesas %}
+            <tr>
+                <td>{{ despesa.data.strftime("%d/%m/%Y") }}</td>
+                <td>{{ despesa.descricao }}</td>
+                <td>{{ despesa.categoria }}</td>
+                <td style="color:#ff4d4d;">
+                    R$ {{ "%.2f"|format(despesa.valor) }}
+                </td>
+
+                {% if current_user.is_tenant_admin() %}
+                <td>
+                    <form method="POST"
+                          action="{{ url_for('expenses.delete', expense_id=despesa.id) }}"
+                          onsubmit="return confirm('Excluir esta despesa?');">
+                        <button class="btn btn-sm btn-danger">Excluir</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="color:#9a9a9a;">Nenhuma despesa cadastrada.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
