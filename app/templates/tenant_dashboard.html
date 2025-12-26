@@ -207,7 +207,12 @@
                     <td>{{ s.barber.nome if s.barber else "-" }}</td>
 
                     {% if current_user.is_tenant_admin() %}
-                    <td>
+                    <td style="display:flex; gap:8px;">
+                        <button class="btn btn-sm btn-warning"
+                                onclick="document.getElementById('edit{{s.id}}').style.display='block'">
+                            Editar
+                        </button>
+
                         <form method="POST">
                             <input type="hidden" name="action" value="delete_service">
                             <input type="hidden" name="service_id" value="{{ s.id }}">
@@ -219,6 +224,67 @@
                     </td>
                     {% endif %}
                 </tr>
+
+                <!-- MODAL EDITAR SERVIÇO -->
+                <div id="edit{{s.id}}" class="modal"
+                     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+                            background:rgba(0,0,0,0.6); padding-top:80px;">
+                    <div class="card" style="max-width:480px; margin:auto;">
+                        <h3>Editar Serviço</h3>
+
+                        <form method="POST">
+                            <input type="hidden" name="action" value="edit_service">
+                            <input type="hidden" name="service_id" value="{{ s.id }}">
+
+                            <div class="form-group">
+                                <label>Nome</label>
+                                <input type="text" name="nome" value="{{ s.nome }}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Descrição</label>
+                                <input type="text" name="descricao" value="{{ s.descricao or '' }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Preço</label>
+                                <input type="number" step="0.01" name="preco" value="{{ s.preco }}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Duração (min)</label>
+                                <input type="number" name="duracao" value="{{ s.duracao_min }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Barbeiro</label>
+                                <select name="barber_id">
+                                    <option value="">Nenhum</option>
+                                    {% for barber in barbers %}
+                                        <option value="{{ barber.id }}"
+                                            {% if s.barber_id==barber.id %}selected{% endif %}>
+                                            {{ barber.nome }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <label>
+                                <input type="checkbox" name="ativo" {% if s.ativo %}checked{% endif %}>
+                                Ativo
+                            </label>
+
+                            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                <button type="button" class="btn"
+                                        onclick="document.getElementById('edit{{s.id}}').style.display='none'">
+                                    Cancelar
+                                </button>
+                                <button class="btn btn-gold">Salvar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 {% endfor %}
             </tbody>
         </table>
