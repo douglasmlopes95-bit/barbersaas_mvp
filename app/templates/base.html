@@ -19,12 +19,18 @@
     <header class="header container">
 
         <!-- LOGO / MARCA (WHITE LABEL) -->
-        {% if tenant is defined and tenant and tenant.logo_url %}
+        {% if tenant is defined and tenant and tenant.logo %}
             <div style="display:flex; align-items:center; gap:12px;">
                 <img
-                    src="{{ tenant.logo_url }}"
+                    src="{{ tenant.logo }}"
                     alt="Logo {{ tenant.nome }}"
-                    style="height:48px;"
+                    style="
+                        height:55px;
+                        width:auto;
+                        max-width:240px;
+                        object-fit:contain;
+                        display:block;
+                    "
                 >
                 <h1>
                     <span>{{ tenant.nome }}</span>
