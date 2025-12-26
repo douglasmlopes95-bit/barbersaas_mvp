@@ -1,7 +1,7 @@
 from flask import (
     Blueprint, render_template,
     request, redirect, url_for,
-    flash, abort
+    flash, abort, session
 )
 from flask_login import (
     login_required,
@@ -40,9 +40,6 @@ def dashboard():
     ativos = len([t for t in tenants if t.ativo])
     inativos = len([t for t in tenants if not t.ativo])
 
-    # =====================================================
-    # PERÍODO FILTRADO
-    # =====================================================
     period = request.args.get("period", "30")
 
     try:
@@ -59,9 +56,6 @@ def dashboard():
     try:
         from app.models.cash_movement import CashMovement
 
-        # =====================================================
-        # FATURAMENTO TOTAL DO PERÍODO
-        # =====================================================
         total_faturamento = (
             db.session.query(func.sum(CashMovement.valor))
             .filter(CashMovement.tipo == "ENTRADA")
@@ -69,9 +63,6 @@ def dashboard():
             .scalar()
         ) or 0
 
-        # =====================================================
-        # RANKING DE BARBEARIAS
-        # =====================================================
         ranking_query = (
             db.session.query(
                 Tenant,
@@ -92,16 +83,10 @@ def dashboard():
         )
 
         ranking = [
-            {
-                "tenant": r[0],
-                "faturamento": float(r[1] or 0)
-            }
+            {"tenant": r[0], "faturamento": float(r[1] or 0)}
             for r in ranking_query
         ]
 
-        # =====================================================
-        # GRÁFICO MENSAL
-        # =====================================================
         faturamento_raw = (
             db.session.query(
                 func.strftime("%Y-%m", CashMovement.criado_em).label("mes"),
@@ -121,15 +106,11 @@ def dashboard():
 
     return render_template(
         "admin/dashboard.html",
-
         tenants=tenants,
-
         total_tenants=total_tenants,
         ativos=ativos,
         inativos=inativos,
-
         period=str(period),
-
         total_faturamento=total_faturamento,
         ranking=ranking,
         faturamento_mensal=faturamento_mensal
@@ -221,7 +202,7 @@ def tenant_detail(tenant_id):
 
 
 # =========================================================
-# IMPERSONAÇÃO
+# IMPERSONAÇÃO (ENTRAR NO SALÃO)
 # =========================================================
 @admin_bp.route("/tenants/<int:tenant_id>/access", methods=["GET", "POST"])
 @login_required
@@ -242,7 +223,37 @@ def access_tenant(tenant_id):
         flash("Nenhum administrador encontrado para esta barbearia", "danger")
         return redirect(url_for("admin.tenant_detail", tenant_id=tenant.id))
 
+    # 🔥 salva quem era o admin global
+    session["original_admin_id"] = current_user.id
+
     login_user(admin_tenant)
     flash(f"Acessando {tenant.nome}", "success")
 
     return redirect(url_for("tenant.dashboard"))
+
+
+
+# =========================================================
+# VOLTAR PARA ADMIN GLOBAL
+# =========================================================
+@admin_bp.route("/return", methods=["GET"])
+@login_required
+def return_admin():
+
+    admin_id = session.get("original_admin_id")
+
+    if not admin_id:
+        flash("Sessão administrativa não encontrada", "danger")
+        return redirect(url_for("tenant.dashboard"))
+
+    admin = User.query.get(admin_id)
+
+    if not admin or not admin.is_admin_global():
+        flash("Acesso administrativo inválido", "danger")
+        return redirect(url_for("tenant.dashboard"))
+
+    login_user(admin)
+    session.pop("original_admin_id", None)
+
+    flash("Você voltou para o painel administrativo", "success")
+    return redirect(url_for("admin.dashboard"))
