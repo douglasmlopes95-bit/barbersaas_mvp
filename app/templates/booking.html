@@ -9,31 +9,26 @@
 <!-- ============================= -->
 <div class="booking-header" style="text-align:center; margin-bottom:30px;">
 
+    {% set logo = None %}
+
     {% if tenant.logo_url %}
-        <img
-            src="{{ tenant.logo_url }}"
-            alt="Logo {{ tenant.nome }}"
-            style="
-                max-height:110px;
-                width:auto;
-                max-width:300px;
-                object-fit:contain;
-                margin-bottom:12px;
-                display:block;
-                margin-left:auto;
-                margin-right:auto;
-            "
-        >
+        {% set logo = tenant.logo_url %}
     {% elif tenant.logo %}
-        <img
-            src="{{ tenant.logo }}"
+        {% set logo = tenant.logo %}
+    {% elif current_user and current_user.tenant and current_user.tenant.logo %}
+        {% set logo = current_user.tenant.logo %}
+    {% endif %}
+
+    {% if logo %}
+        <img 
+            src="{{ logo }}" 
             alt="Logo {{ tenant.nome }}"
             style="
                 max-height:110px;
                 width:auto;
-                max-width:300px;
+                max-width:320px;
                 object-fit:contain;
-                margin-bottom:12px;
+                margin-bottom:14px;
                 display:block;
                 margin-left:auto;
                 margin-right:auto;
@@ -183,7 +178,6 @@ barberSelect.addEventListener("change", () => {
         return;
     }
 
-    // FILTRAR SERVIÇOS DO BARBEIRO
     const filteredServices = services.filter(s => s.barber_id == barberId);
 
     serviceSelect.disabled = false;
@@ -196,7 +190,6 @@ barberSelect.addEventListener("change", () => {
             </option>`;
     });
 
-    // FILTRAR HORÁRIOS DO BARBEIRO
     const filteredSlots = slots.filter(s => s.barber_id == barberId);
 
     slotSelect.disabled = false;
