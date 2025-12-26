@@ -37,60 +37,6 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
-    # FIX – GARANTIR COLUNAS NO POSTGRES (Render)
-    # =====================================================
-    try:
-        from sqlalchemy import text
-        with app.app_context():
-
-            # -------- USERS.excluido ----------
-            db.session.execute(text("""
-                ALTER TABLE users
-                ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE;
-            """))
-
-            # -------- APPOINTMENTS.concluido_em ----------
-            db.session.execute(text("""
-                ALTER TABLE appointments
-                ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMP NULL;
-            """))
-
-            # -------- APPOINTMENTS.atualizado_em ----------
-            db.session.execute(text("""
-                ALTER TABLE appointments
-                ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP NULL;
-            """))
-
-            # -------- SERVICES.barber_id ----------
-            db.session.execute(text("""
-                ALTER TABLE services
-                ADD COLUMN IF NOT EXISTS barber_id INTEGER NULL;
-            """))
-
-            # Garante FK somente se ainda não existir
-            db.session.execute(text("""
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM information_schema.table_constraints
-                        WHERE constraint_name = 'services_barber_id_fkey'
-                    ) THEN
-                        ALTER TABLE services
-                        ADD CONSTRAINT services_barber_id_fkey
-                        FOREIGN KEY (barber_id)
-                        REFERENCES users(id)
-                        ON DELETE SET NULL;
-                    END IF;
-                END$$;
-            """))
-
-            db.session.commit()
-            print("✔ Correções de colunas garantidas no banco")
-
-    except Exception as e:
-        print("⚠ Erro garantindo colunas no banco:", e)
-
-    # =====================================================
     # REGISTRO DE BLUEPRINTS
     # =====================================================
     from app.auth.routes import auth_bp
