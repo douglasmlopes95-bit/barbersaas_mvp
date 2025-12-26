@@ -5,13 +5,19 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+import os
 
 from app.extensions import db
 from app.models.user import User
 from app.models.service import Service
 from app.models.appointment import Appointment
 from app.models.available_slot import AvailableSlot
+from app.models.cash_session import CashSession
+from app.models.cash_movement import CashMovement
+from app.models.tenant import Tenant   # <-- IMPORT IMPORTANTE
+
 
 # =========================================================
 # BLUEPRINT
@@ -24,7 +30,7 @@ tenant_bp = Blueprint(
 )
 
 # =========================================================
-# DASHBOARD PRINCIPAL
+# DASHBOARD PRINCIPAL + AGENDA
 # =========================================================
 
 @tenant_bp.route("/", methods=["GET", "POST"])
@@ -37,33 +43,54 @@ def dashboard():
     tenant_id = current_user.tenant_id
 
     # =====================================================
+    # FILTROS DA AGENDA
+    # =====================================================
+    filtro_data = request.args.get("data")
+    filtro_status = request.args.get("status")
+    filtro_barbeiro = request.args.get("barber_id")
+
+    q_appointments = Appointment.query.filter_by(
+        tenant_id=tenant_id
+    )
+
+    if current_user.is_barber():
+        q_appointments = q_appointments.filter(
+            Appointment.barber_id == current_user.id
+        )
+
+    if filtro_data:
+        data = datetime.strptime(filtro_data, "%Y-%m-%d").date()
+        q_appointments = q_appointments.filter(
+            db.func.date(Appointment.data_hora) == data
+        )
+
+    if filtro_status:
+        q_appointments = q_appointments.filter(
+            Appointment.status == filtro_status
+        )
+
+    if filtro_barbeiro and current_user.is_tenant_admin():
+        q_appointments = q_appointments.filter(
+            Appointment.barber_id == int(filtro_barbeiro)
+        )
+
+    appointments = q_appointments.order_by(
+        Appointment.data_hora.asc()
+    ).all()
+
+    # =====================================================
     # LISTAGENS
     # =====================================================
-
     services = Service.query.filter_by(
         tenant_id=tenant_id,
-        ativo=True
+        excluido=False
     ).all()
 
     barbers = User.query.filter_by(
         tenant_id=tenant_id,
         role="BARBER",
-        ativo=True
+        excluido=False
     ).all()
-
-    if current_user.is_barber():
-        appointments = Appointment.query.filter_by(
-            tenant_id=tenant_id,
-            barber_id=current_user.id
-        ).order_by(
-            Appointment.data_hora.asc()
-        ).all()
-    else:
-        appointments = Appointment.query.filter_by(
-            tenant_id=tenant_id
-        ).order_by(
-            Appointment.data_hora.asc()
-        ).all()
 
     slots = AvailableSlot.query.filter_by(
         tenant_id=tenant_id
@@ -73,137 +100,196 @@ def dashboard():
     ).all()
 
     # =====================================================
-    # AÇÕES DO TENANT_ADMIN
+    # AÇÕES POST (ADMIN)
     # =====================================================
-
     if request.method == "POST" and current_user.is_tenant_admin():
 
         action = request.form.get("action")
 
         # -----------------------------
-        # CADASTRAR SERVIÇO
+        # CRIAR SERVIÇO
         # -----------------------------
         if action == "create_service":
 
-            nome = request.form.get("nome")
-            descricao = request.form.get("descricao")
-            preco = request.form.get("preco")
-            duracao = request.form.get("duracao")
+            barber_id = request.form.get("barber_id") or None
 
-            if not nome or not preco:
-                flash("Nome e preço são obrigatórios", "danger")
-                return redirect(url_for("tenant.dashboard"))
+            if barber_id:
+                barber = User.query.filter_by(
+                    id=int(barber_id),
+                    tenant_id=tenant_id,
+                    role="BARBER",
+                    excluido=False
+                ).first()
+
+                if not barber:
+                    flash("Barbeiro inválido", "danger")
+                    return redirect(url_for("tenant.dashboard"))
 
             service = Service(
-                nome=nome,
-                descricao=descricao,
-                preco=float(preco),
-                duracao_min=int(duracao or 30),
-                tenant_id=tenant_id
+                nome=request.form.get("nome"),
+                descricao=request.form.get("descricao"),
+                preco=request.form.get("preco"),
+                duracao_min=int(request.form.get("duracao") or 30),
+                tenant_id=tenant_id,
+                barber_id=barber_id
             )
 
             db.session.add(service)
             db.session.commit()
-
-            flash("Serviço cadastrado com sucesso", "success")
+            flash("Serviço cadastrado", "success")
             return redirect(url_for("tenant.dashboard"))
 
         # -----------------------------
-        # CADASTRAR BARBEIRO
+        # EDITAR SERVIÇO
+        # -----------------------------
+        if action == "edit_service":
+            service = Service.query.get_or_404(
+                request.form.get("service_id")
+            )
+
+            if service.tenant_id != tenant_id:
+                abort(403)
+
+            barber_id = request.form.get("barber_id") or None
+
+            if barber_id:
+                barber = User.query.filter_by(
+                    id=int(barber_id),
+                    tenant_id=tenant_id,
+                    role="BARBER",
+                    excluido=False
+                ).first()
+
+                if not barber:
+                    flash("Barbeiro inválido", "danger")
+                    return redirect(url_for("tenant.dashboard"))
+
+            service.nome = request.form.get("nome")
+            service.descricao = request.form.get("descricao")
+            service.preco = request.form.get("preco")
+            service.duracao_min = int(request.form.get("duracao") or 30)
+            service.ativo = bool(request.form.get("ativo"))
+            service.barber_id = barber_id
+
+            db.session.commit()
+            flash("Serviço atualizado", "success")
+            return redirect(url_for("tenant.dashboard"))
+
+        # -----------------------------
+        # EXCLUIR SERVIÇO
+        # -----------------------------
+        if action == "delete_service":
+            service = Service.query.get_or_404(
+                request.form.get("service_id")
+            )
+            if service.tenant_id != tenant_id or not service.pode_excluir():
+                flash("Não é possível excluir este serviço", "danger")
+            else:
+                service.soft_delete()
+                db.session.commit()
+                flash("Serviço excluído", "success")
+            return redirect(url_for("tenant.dashboard"))
+
+        # -----------------------------
+        # CRIAR BARBEIRO
         # -----------------------------
         if action == "create_barber":
-
-            nome = request.form.get("nome")
-            email = request.form.get("email")
-            senha = request.form.get("senha")
-
-            if not all([nome, email, senha]):
-                flash("Preencha todos os campos do barbeiro", "danger")
-                return redirect(url_for("tenant.dashboard"))
-
-            if User.query.filter_by(email=email).first():
-                flash("E-mail já cadastrado", "danger")
-                return redirect(url_for("tenant.dashboard"))
-
             barber = User(
-                nome=nome,
-                email=email,
+                nome=request.form.get("nome"),
+                email=request.form.get("email"),
                 role="BARBER",
-                tenant_id=tenant_id,
-                ativo=True
+                tenant_id=tenant_id
             )
-            barber.senha = generate_password_hash(senha)
-
+            barber.set_password(request.form.get("senha"))
             db.session.add(barber)
             db.session.commit()
-
-            flash("Barbeiro cadastrado com sucesso", "success")
+            flash("Barbeiro cadastrado", "success")
             return redirect(url_for("tenant.dashboard"))
 
         # -----------------------------
-        # GERAR HORÁRIOS (SEMANAL)
+        # EDITAR BARBEIRO
+        # -----------------------------
+        if action == "edit_barber":
+            barber = User.query.get_or_404(
+                request.form.get("barber_id")
+            )
+            if barber.tenant_id != tenant_id:
+                abort(403)
+
+            barber.nome = request.form.get("nome")
+            barber.email = request.form.get("email")
+
+            if request.form.get("senha"):
+                barber.set_password(request.form.get("senha"))
+
+            barber.ativo = bool(request.form.get("ativo"))
+            db.session.commit()
+            flash("Barbeiro atualizado", "success")
+            return redirect(url_for("tenant.dashboard"))
+
+        # -----------------------------
+        # EXCLUIR BARBEIRO
+        # -----------------------------
+        if action == "delete_barber":
+            barber = User.query.get_or_404(
+                request.form.get("barber_id")
+            )
+            if barber.tenant_id != tenant_id:
+                abort(403)
+
+            barber.soft_delete()
+            db.session.commit()
+            flash("Barbeiro removido", "success")
+            return redirect(url_for("tenant.dashboard"))
+
+        # -----------------------------
+        # GERAR HORÁRIOS
         # -----------------------------
         if action == "generate_slots":
-
-            barber_id = request.form.get("barber_id")
-            weekdays = request.form.getlist("weekdays")
-            hora_inicio = request.form.get("hora_inicio")
-            hora_fim = request.form.get("hora_fim")
+            barber_id = int(request.form.get("barber_id"))
+            weekdays = [int(d) for d in request.form.getlist("weekdays")]
             intervalo = int(request.form.get("intervalo", 30))
-            data_inicio = request.form.get("data_inicio")
-            data_fim = request.form.get("data_fim")
 
-            if not all([
-                barber_id, weekdays, hora_inicio,
-                hora_fim, data_inicio, data_fim
-            ]):
-                flash("Preencha todos os campos de horário", "danger")
-                return redirect(url_for("tenant.dashboard"))
+            data_inicio = datetime.strptime(
+                request.form.get("data_inicio"), "%Y-%m-%d"
+            ).date()
+            data_fim = datetime.strptime(
+                request.form.get("data_fim"), "%Y-%m-%d"
+            ).date()
 
-            barber_id = int(barber_id)
-            weekdays = [int(d) for d in weekdays]
+            hora_inicio = datetime.strptime(
+                request.form.get("hora_inicio"), "%H:%M"
+            ).time()
+            hora_fim = datetime.strptime(
+                request.form.get("hora_fim"), "%H:%M"
+            ).time()
 
-            data_inicio = datetime.strptime(data_inicio, "%Y-%m-%d").date()
-            data_fim = datetime.strptime(data_fim, "%Y-%m-%d").date()
+            dia = data_inicio
+            while dia <= data_fim:
+                if dia.weekday() in weekdays:
+                    atual = datetime.combine(dia, hora_inicio)
+                    fim = datetime.combine(dia, hora_fim)
 
-            hora_inicio = datetime.strptime(hora_inicio, "%H:%M").time()
-            hora_fim = datetime.strptime(hora_fim, "%H:%M").time()
-
-            dia_atual = data_inicio
-
-            while dia_atual <= data_fim:
-
-                if dia_atual.weekday() in weekdays:
-                    inicio = datetime.combine(dia_atual, hora_inicio)
-                    fim = datetime.combine(dia_atual, hora_fim)
-
-                    atual = inicio
                     while atual < fim:
-
-                        existe = AvailableSlot.query.filter_by(
+                        if not AvailableSlot.query.filter_by(
                             tenant_id=tenant_id,
                             barber_id=barber_id,
-                            data=dia_atual,
+                            data=dia,
                             hora=atual.time()
-                        ).first()
-
-                        if not existe:
+                        ).first():
                             db.session.add(
                                 AvailableSlot(
                                     tenant_id=tenant_id,
                                     barber_id=barber_id,
-                                    data=dia_atual,
-                                    hora=atual.time(),
-                                    disponivel=True
+                                    data=dia,
+                                    hora=atual.time()
                                 )
                             )
-
                         atual += timedelta(minutes=intervalo)
-
-                dia_atual += timedelta(days=1)
+                dia += timedelta(days=1)
 
             db.session.commit()
-            flash("Horários gerados com sucesso", "success")
+            flash("Horários gerados", "success")
             return redirect(url_for("tenant.dashboard"))
 
     return render_template(
@@ -214,8 +300,46 @@ def dashboard():
         slots=slots
     )
 
+
 # =========================================================
-# REDIRECIONAMENTOS (HUB)
+# CONCLUIR AGENDAMENTO
+# =========================================================
+
+@tenant_bp.route("/appointment/<int:appointment_id>/complete", methods=["POST"])
+@login_required
+def complete_appointment(appointment_id):
+
+    appointment = Appointment.query.get_or_404(appointment_id)
+
+    if appointment.tenant_id != current_user.tenant_id:
+        abort(403)
+
+    appointment.concluir()
+
+    service = Service.query.get(appointment.service_id)
+
+    cash_session = CashSession.get_or_create_aberta(
+        tenant_id=current_user.tenant_id,
+        usuario_id=current_user.id
+    )
+
+    CashMovement.registrar_entrada(
+        tenant_id=current_user.tenant_id,
+        cash_session=cash_session,
+        usuario_id=current_user.id,
+        valor=service.preco,
+        categoria="SERVICO",
+        descricao=f"Serviço: {service.nome}",
+        appointment_id=appointment.id
+    )
+
+    db.session.commit()
+    flash("Serviço concluído", "success")
+    return redirect(url_for("tenant.dashboard"))
+
+
+# =========================================================
+# HUB
 # =========================================================
 
 @tenant_bp.route("/reports")
@@ -228,55 +352,87 @@ def go_reports():
 def go_cash():
     return redirect(url_for("cash.overview"))
 
+
 # =========================================================
-# BLOQUEAR / LIBERAR HORÁRIO
+# HORÁRIOS
 # =========================================================
 
 @tenant_bp.route("/slot/<int:slot_id>/toggle", methods=["POST"])
 @login_required
 def toggle_slot(slot_id):
 
-    if not current_user.is_tenant_admin():
-        abort(403)
-
     slot = AvailableSlot.query.get_or_404(slot_id)
 
     if slot.tenant_id != current_user.tenant_id:
         abort(403)
 
-    slot.disponivel = not slot.disponivel
-    db.session.commit()
+    if slot.disponivel:
+        slot.bloquear()
+    else:
+        slot.liberar()
 
+    db.session.commit()
     flash("Status do horário atualizado", "success")
     return redirect(url_for("tenant.dashboard"))
-
-# =========================================================
-# EXCLUIR HORÁRIO
-# =========================================================
 
 @tenant_bp.route("/slot/<int:slot_id>/delete", methods=["POST"])
 @login_required
 def delete_slot(slot_id):
 
-    if not current_user.is_tenant_admin():
-        abort(403)
-
     slot = AvailableSlot.query.get_or_404(slot_id)
 
-    if slot.tenant_id != current_user.tenant_id:
-        abort(403)
-
-    existe_agendamento = Appointment.query.filter_by(
-        barber_id=slot.barber_id,
-        data_hora=datetime.combine(slot.data, slot.hora)
-    ).first()
-
-    if existe_agendamento:
-        flash("Não é possível excluir horário já agendado", "danger")
+    if slot.tenant_id != current_user.tenant_id or not slot.pode_excluir():
+        flash("Não é possível excluir este horário", "danger")
         return redirect(url_for("tenant.dashboard"))
 
     db.session.delete(slot)
     db.session.commit()
-
-    flash("Horário excluído com sucesso", "success")
+    flash("Horário excluído", "success")
     return redirect(url_for("tenant.dashboard"))
+
+
+# =========================================================
+# DADOS DA EMPRESA — NOVA ABA
+# =========================================================
+@tenant_bp.route("/company", methods=["GET", "POST"])
+@login_required
+def company_settings():
+
+    if not current_user.is_tenant_admin():
+        abort(403)
+
+    tenant = Tenant.query.get_or_404(current_user.tenant_id)
+
+    if request.method == "POST":
+        tenant.descricao = request.form.get("descricao")
+        tenant.endereco = request.form.get("endereco")
+        tenant.whatsapp = request.form.get("whatsapp")
+
+        # ==============================
+        # UPLOAD REAL DA LOGO
+        # ==============================
+        file = request.files.get("logo")
+
+        if file and file.filename != "":
+            filename = secure_filename(file.filename)
+
+            upload_dir = os.path.join("static", "uploads", "logos")
+            os.makedirs(upload_dir, exist_ok=True)
+
+            filename = f"tenant_{tenant.id}_{int(datetime.utcnow().timestamp())}_{filename}"
+            file_path = os.path.join(upload_dir, filename)
+
+            file.save(file_path)
+
+            # SALVA NO CAMPO REAL DO BANCO
+            tenant.logo_filename = filename
+
+        db.session.commit()
+
+        flash("Dados da empresa atualizados com sucesso!", "success")
+        return redirect(url_for("tenant.company_settings"))
+
+    return render_template(
+        "tenant/company.html",
+        tenant=tenant
+    )

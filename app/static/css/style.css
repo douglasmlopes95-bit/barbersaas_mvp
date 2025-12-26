@@ -69,9 +69,21 @@ a:hover {
 ========================= */
 .header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 6px;
     margin-bottom: 26px;
+}
+
+/* === INTEGRAÇÃO LOGO BARBEARIA === */
+.header img {
+    display: block;
+    max-height: 56px;
+}
+
+.header > div {
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
 .header h1 {
@@ -84,12 +96,26 @@ a:hover {
 }
 
 /* =========================
+   🔹 AJUSTE ADITIVO — NAV DO HEADER
+========================= */
+.header nav {
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.header nav a {
+    margin-right: 10px;
+    font-weight: 500;
+}
+
+/* =========================
    TABS (FINAL / UNIFICADO)
 ========================= */
 .tabs {
     display: flex;
     gap: 12px;
     margin-bottom: 26px;
+    flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -152,7 +178,7 @@ a:hover {
 .card h3 {
     font-size: 12px;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: .06em;
 }
@@ -179,10 +205,37 @@ a:hover {
     display: inline-block;
 }
 
-.badge.success { background: rgba(46,204,113,.15); color: var(--success); }
-.badge.danger  { background: rgba(255,77,77,.15);  color: var(--danger); }
-.badge.warning { background: rgba(241,196,15,.15); color: var(--warning); }
-.badge.info    { background: rgba(52,152,219,.15); color: var(--info); }
+.badge-success,
+.badge.success {
+    background: rgba(46,204,113,.15);
+    color: var(--success);
+}
+
+.badge-danger,
+.badge.danger {
+    background: rgba(255,77,77,.15);
+    color: var(--danger);
+}
+
+.badge-warning,
+.badge.warning {
+    background: rgba(241,196,15,.15);
+    color: var(--warning);
+}
+
+.badge-info,
+.badge.info {
+    background: rgba(52,152,219,.15);
+    color: var(--info);
+}
+
+/* =========================
+   TEXTO AUXILIAR
+========================= */
+.muted {
+    color: var(--text-muted);
+    font-size: 14px;
+}
 
 /* =========================
    TABELAS
@@ -212,6 +265,13 @@ a:hover {
 
 .table tr:hover {
     background: rgba(255,255,255,0.025);
+}
+
+/* =========================
+   🔹 AJUSTE ADITIVO
+========================= */
+.table .btn-sm {
+    white-space: nowrap;
 }
 
 /* =========================
@@ -293,6 +353,21 @@ textarea:focus {
 .alert-success { background: rgba(46,204,113,.15); color: var(--success); }
 .alert-danger  { background: rgba(255,77,77,.15);  color: var(--danger); }
 .alert-warning { background: rgba(241,196,15,.15); color: var(--warning); }
+
+/* =========================
+   LISTA DE RELATÓRIOS
+========================= */
+.report-list {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.report-list li {
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
 
 /* =========================
    LOGIN

@@ -18,27 +18,50 @@ INSTANCE_DIR.mkdir(exist_ok=True)
 class BaseConfig:
     """Configurações base compartilhadas"""
 
+    # -----------------------------------------------------
     # Segurança
+    # -----------------------------------------------------
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-this")
 
+    # -----------------------------------------------------
     # Flask
+    # -----------------------------------------------------
     DEBUG = False
     TESTING = False
 
+    # -----------------------------------------------------
     # Banco de dados
+    # -----------------------------------------------------
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # -----------------------------------------------------
     # Sessão / Cookies
+    # -----------------------------------------------------
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
-    # Uploads (futuro)
+    # -----------------------------------------------------
+    # Uploads (LOGO DA BARBEARIA)
+    # -----------------------------------------------------
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB
 
+    UPLOAD_FOLDER = BASE_DIR / "app" / "static" / "uploads"
+    UPLOAD_LOGOS_FOLDER = UPLOAD_FOLDER / "logos"
+
+    ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+    # Garante pastas de upload
+    UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+    UPLOAD_LOGOS_FOLDER.mkdir(parents=True, exist_ok=True)
+
+    # -----------------------------------------------------
     # Timezone
+    # -----------------------------------------------------
     TIMEZONE = "America/Sao_Paulo"
 
-    # Branding (facilita white-label depois)
+    # -----------------------------------------------------
+    # Branding / White-label
+    # -----------------------------------------------------
     APP_NAME = "BarberSaaS"
     THEME = "dark"
 
@@ -90,6 +113,7 @@ config_by_name = {
     "production": ProductionConfig,
     "testing": TestingConfig,
 }
+
 
 def get_config():
     """Retorna config baseada na variável FLASK_ENV"""

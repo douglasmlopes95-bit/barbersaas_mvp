@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Barbearia • {{ tenant.nome }}{% endblock %}
+
+{% block content %}
+
+<div class="header">
+    <h1>Barbearia <span>{{ tenant.nome }}</span></h1>
+</div>
+
+<!-- ============================= -->
+<!-- CARDS RESUMO -->
+<!-- ============================= -->
+<div class="cards">
+    <div class="card info">
+        <h3>ID</h3>
+        <p>#{{ tenant.id }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Slug</h3>
+        <p>{{ tenant.slug }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Status</h3>
+        {% if tenant.ativo %}
+            <p class="badge badge-success">ATIVA</p>
+        {% else %}
+            <p class="badge badge-danger">INATIVA</p>
+        {% endif %}
+    </div>
+
+    <div class="card warning">
+        <h3>Criada em</h3>
+        <p>{{ tenant.criado_em.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+</div>
+
+<!-- ============================= -->
+<!-- LOGO + INFORMAÇÕES -->
+<!-- ============================= -->
+<div class="card" style="margin-bottom:25px;">
+    <h3 style="margin-bottom:15px;">Informações da Barbearia</h3>
+
+    <div style="display:flex; gap:25px; align-items:flex-start;">
+
+        {% if tenant.logo_url %}
+        <img src="{{ tenant.logo_url }}"
+             alt="Logo"
+             style="height:80px; border-radius:12px;">
+        {% endif %}
+
+        <div>
+            {% if tenant.descricao %}
+                <p class="muted">{{ tenant.descricao }}</p>
+            {% else %}
+                <p class="muted">Nenhuma descrição cadastrada.</p>
+            {% endif %}
+
+            <ul class="report-list">
+                <li><strong>WhatsApp:</strong> {{ tenant.whatsapp or '—' }}</li>
+                <li><strong>Endereço:</strong> {{ tenant.endereco or '—' }}</li>
+                <li><strong>Horário:</strong> {{ tenant.horario_funcionamento or '—' }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- ============================= -->
+<!-- ADMINISTRADORES -->
+<!-- ============================= -->
+<div class="card" style="margin-bottom:25px;">
+    <h3 style="margin-bottom:15px;">Administradores</h3>
+
+    {% if admins %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Status</th>
+                <th>Entrar Como</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for admin in admins %}
+            <tr>
+                <td>{{ admin.nome }}</td>
+                <td>{{ admin.email }}</td>
+
+                <td>
+                    {% if admin.ativo %}
+                        <span class="badge badge-success">Ativo</span>
+                    {% else %}
+                        <span class="badge badge-danger">Inativo</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <form method="POST"
+                          action="{{ url_for('admin.access_tenant', tenant_id=tenant.id) }}">
+                        <button class="btn btn-sm btn-gold">
+                            Acessar Painel
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+
+    {% else %}
+        <p class="muted">
+            Nenhum administrador encontrado.
+        </p>
+    {% endif %}
+</div>
+
+<!-- ============================= -->
+<!-- LINKS RÁPIDOS -->
+<!-- ============================= -->
+<div class="card">
+    <h3 style="margin-bottom:12px;">Links</h3>
+
+    <ul class="report-list">
+        <li>
+            <a href="/{{ tenant.slug }}/agendar" target="_blank">
+                Página pública de agendamento
+            </a>
+        </li>
+    </ul>
+</div>
+
+{% endblock %}

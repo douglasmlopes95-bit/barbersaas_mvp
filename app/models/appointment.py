@@ -45,22 +45,65 @@ class Appointment(db.Model):
     # Status do agendamento
     status = db.Column(
         db.String(20),
+        nullable=False,
         default="AGENDADO"
     )  # AGENDADO | CONCLUIDO | CANCELADO
+
+    # Data de conclusão do serviço
+    concluido_em = db.Column(
+        db.DateTime,
+        nullable=True
+    )
 
     # Observações opcionais
     observacoes = db.Column(db.String(255), nullable=True)
 
     # Auditoria
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    criado_em = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    atualizado_em = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
 
     # =====================================================
-    # MÉTODOS
+    # MÉTODOS DE DOMÍNIO
+    # =====================================================
+
+    def concluir(self):
+        """
+        Marca o agendamento como concluído
+        """
+        if self.status != "AGENDADO":
+            return False
+
+        self.status = "CONCLUIDO"
+        self.concluido_em = datetime.utcnow()
+        return True
+
+    def cancelar(self):
+        """
+        Cancela o agendamento
+        """
+        if self.status == "CONCLUIDO":
+            return False
+
+        self.status = "CANCELADO"
+        return True
+
+    # =====================================================
+    # REPRESENTAÇÃO
     # =====================================================
 
     def __repr__(self):
         return (
             f"<Appointment {self.id} | "
-            f"{self.data_hora.strftime('%d/%m %H:%M')} | "
+            f"{self.data_hora.strftime('%d/%m/%Y %H:%M')} | "
             f"Status: {self.status}>"
         )

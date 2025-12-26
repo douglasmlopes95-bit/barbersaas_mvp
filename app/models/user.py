@@ -11,7 +11,7 @@ from app.extensions import db
 class User(UserMixin, db.Model):
     """
     Usuários do sistema:
-    - ADMIN_GLOBAL (você)
+    - ADMIN_GLOBAL (admin do SaaS)
     - TENANT_ADMIN (dono da barbearia)
     - BARBER (barbeiro)
     """
@@ -20,41 +20,90 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # Identidade
-    nome = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    # =====================================================
+    # IDENTIDADE
+    # =====================================================
+    nome = db.Column(
+        db.String(120),
+        nullable=False
+    )
 
-    # Autenticação
-    senha = db.Column(db.String(255), nullable=False)
+    email = db.Column(
+        db.String(120),
+        unique=True,
+        nullable=False,
+        index=True
+    )
 
-    # Papel no sistema
-    role = db.Column(db.String(20), nullable=False)
+    # =====================================================
+    # AUTENTICAÇÃO
+    # =====================================================
+    senha = db.Column(
+        db.String(255),
+        nullable=False
+    )
 
-    # Relacionamento com tenant
-    tenant_id = db.Column(db.Integer, db.ForeignKey("tenants.id"), nullable=True)
+    # =====================================================
+    # PAPEL / PERMISSÃO
+    # =====================================================
+    role = db.Column(
+        db.String(20),
+        nullable=False
+    )
 
-    # Status
-    ativo = db.Column(db.Boolean, default=True)
+    # =====================================================
+    # MULTI-TENANT
+    # =====================================================
+    tenant_id = db.Column(
+        db.Integer,
+        db.ForeignKey("tenants.id"),
+        nullable=True,
+        index=True
+    )
 
-    # Auditoria
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    # =====================================================
+    # STATUS / CONTROLE
+    # =====================================================
+    ativo = db.Column(
+        db.Boolean,
+        default=True,
+        nullable=False
+    )
+
+    excluido = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False
+    )
+
+    # =====================================================
+    # AUDITORIA
+    # =====================================================
+    criado_em = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    atualizado_em = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
 
     # =====================================================
     # MÉTODOS DE AUTENTICAÇÃO
     # =====================================================
-
     def set_password(self, password: str):
-        """Define a senha com hash seguro"""
         self.senha = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
-        """Verifica senha"""
         return check_password_hash(self.senha, password)
 
     # =====================================================
     # HELPERS DE ROLE
     # =====================================================
-
     def is_admin_global(self) -> bool:
         return self.role == "ADMIN_GLOBAL"
 
@@ -65,8 +114,27 @@ class User(UserMixin, db.Model):
         return self.role == "BARBER"
 
     # =====================================================
+    # AÇÕES DE DOMÍNIO
+    # =====================================================
+    def desativar(self):
+        self.ativo = False
+
+    def ativar(self):
+        self.ativo = True
+
+    def soft_delete(self):
+        self.excluido = True
+        self.ativo = False
+
+    # =====================================================
+    # FLASK-LOGIN
+    # =====================================================
+    def get_id(self):
+        return str(self.id)
+
+    # =====================================================
     # REPRESENTAÇÃO
     # =====================================================
-
     def __repr__(self):
-        return f"<User {self.email} ({self.role})>"
+        status = "ativo" if self.ativo else "inativo"
+        return f"<User id={self.id} email={self.email} role={self.role} status={status}>"

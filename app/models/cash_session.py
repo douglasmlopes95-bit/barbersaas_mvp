@@ -108,9 +108,6 @@ class CashSession(db.Model):
 
     @property
     def saldo_calculado(self):
-        """
-        Saldo esperado no fechamento
-        """
         return (
             Decimal(self.valor_inicial)
             + Decimal(self.total_entradas)
@@ -122,29 +119,48 @@ class CashSession(db.Model):
         return self.status == "ABERTO"
 
     # ==============================
-    # MÉTODOS DE NEGÓCIO
+    # MÉTODOS UTILITÁRIOS
     # ==============================
 
     @staticmethod
     def caixa_aberto(tenant_id):
-        """
-        Retorna o caixa aberto atual (se existir)
-        """
         return CashSession.query.filter_by(
             tenant_id=tenant_id,
             status="ABERTO"
         ).first()
 
+    @classmethod
+    def get_or_create_aberta(cls, tenant_id, usuario_id):
+        """
+        Compatível com o dashboard:
+        - Retorna caixa aberto
+        - Se não existir, abre automaticamente
+        """
+        caixa = cls.caixa_aberto(tenant_id)
+
+        if caixa:
+            return caixa
+
+        novo = cls(
+            tenant_id=tenant_id,
+            usuario_abertura_id=usuario_id,
+            status="ABERTO",
+            valor_inicial=Decimal("0.00"),
+            total_entradas=Decimal("0.00"),
+            total_saidas=Decimal("0.00")
+        )
+
+        db.session.add(novo)
+        db.session.commit()
+
+        return novo
+
+    # ==============================
+    # OPERAÇÕES
+    # ==============================
+
     @staticmethod
-    def abrir_caixa(
-        tenant_id,
-        usuario_id,
-        valor_inicial=0,
-        observacoes=None
-    ):
-        """
-        Abre um novo caixa
-        """
+    def abrir_caixa(tenant_id, usuario_id, valor_inicial=0, observacoes=None):
         if CashSession.caixa_aberto(tenant_id):
             raise Exception("Já existe um caixa aberto para este tenant")
 
@@ -160,28 +176,14 @@ class CashSession(db.Model):
         return caixa
 
     def registrar_entrada(self, valor):
-        """
-        Registra entrada no caixa (pagamentos)
-        """
         self.total_entradas = Decimal(self.total_entradas) + Decimal(valor)
         db.session.commit()
 
     def registrar_saida(self, valor):
-        """
-        Registra saída do caixa (despesas)
-        """
         self.total_saidas = Decimal(self.total_saidas) + Decimal(valor)
         db.session.commit()
 
-    def fechar_caixa(
-        self,
-        usuario_id,
-        valor_final,
-        observacoes=None
-    ):
-        """
-        Fecha o caixa
-        """
+    def fechar_caixa(self, usuario_id, valor_final, observacoes=None):
         self.usuario_fechamento_id = usuario_id
         self.valor_final = Decimal(valor_final)
         self.fechado_em = datetime.utcnow()

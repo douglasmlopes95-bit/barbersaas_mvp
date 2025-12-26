@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Admin | BarberSaaS{% endblock %}
+
+{% block content %}
+
+<div class="header">
+    <h1>Painel <span>Admin</span></h1>
+    <p class="muted">
+        Controle global do sistema e performance das barbearias
+    </p>
+</div>
+
+
+<!-- ================================================= -->
+<!-- FILTRO DE PERÍODO -->
+<!-- ================================================= -->
+<div class="card" style="margin-bottom:25px;">
+    <h3 style="margin-bottom:10px;">Filtrar Período</h3>
+
+    <form method="GET">
+        <select name="period" onchange="this.form.submit()">
+            <option value="7"  {% if period=='7' %}selected{% endif %}>Últimos 7 dias</option>
+            <option value="30" {% if period=='30' %}selected{% endif %}>Últimos 30 dias</option>
+            <option value="365" {% if period=='365' %}selected{% endif %}>Último Ano</option>
+        </select>
+    </form>
+</div>
+
+
+<!-- ================================================= -->
+<!-- CARDS GERAIS -->
+<!-- ================================================= -->
+<div class="cards">
+
+    <div class="card">
+        <h3>Barbearias</h3>
+        <p>{{ total_tenants or (tenants|length if tenants is defined else 0) }}</p>
+    </div>
+
+    <div class="card success">
+        <h3>Ativas</h3>
+        <p>{{ ativos or 0 }}</p>
+    </div>
+
+    <div class="card danger">
+        <h3>Inativas</h3>
+        <p>{{ inativos or 0 }}</p>
+    </div>
+
+    <div class="card info">
+        <h3>Faturamento do Período</h3>
+        <p>R$ {{ total_faturamento | default(0) | round(2) }}</p>
+    </div>
+
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- GRÁFICO -->
+<!-- ================================================= -->
+<div class="card" style="margin-bottom:30px;">
+    <h3 style="margin-bottom:15px;">📈 Faturamento Mensal</h3>
+
+    {% if faturamento_mensal and faturamento_mensal|length > 0 %}
+        <canvas id="chartFaturamento"></canvas>
+    {% else %}
+        <p class="muted">Sem dados suficientes para exibir gráfico.</p>
+    {% endif %}
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- RANKING DE BARBEARIAS -->
+<!-- ================================================= -->
+<div class="card" style="margin-bottom:30px;">
+    <h3 style="margin-bottom:15px;">🏆 Ranking de Barbearias</h3>
+
+    {% if ranking and ranking|length > 0 %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Barbearia</th>
+            <th>Status</th>
+            <th>Faturamento</th>
+            <th>Acessar</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for item in ranking %}
+        <tr>
+            <td>
+                {% if loop.index == 1 %}🥇
+                {% elif loop.index == 2 %}🥈
+                {% elif loop.index == 3 %}🥉
+                {% else %}
+                    {{ loop.index }}
+                {% endif %}
+            </td>
+
+            <td>{{ item.tenant.nome }}</td>
+
+            <td>
+                {% if item.tenant.ativo %}
+                    <span class="badge badge-success">Ativa</span>
+                {% else %}
+                    <span class="badge badge-danger">Inativa</span>
+                {% endif %}
+            </td>
+
+            <td>
+                R$ {{ item.faturamento | default(0) | round(2) }}
+            </td>
+
+            <td>
+                <form method="POST"
+                      action="{{ url_for('admin.access_tenant', tenant_id=item.tenant.id) }}">
+                    <button class="btn btn-sm btn-gold">
+                        Acessar
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+        <p class="muted">Ranking ainda não disponível.</p>
+    {% endif %}
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- CRIAR BARBEARIA -->
+<!-- ================================================= -->
+<div class="card" style="margin-bottom:30px;">
+    <h3 style="margin-bottom:15px;">Nova Barbearia</h3>
+
+    <form method="POST" action="{{ url_for('admin.tenants_list') }}">
+
+        <div class="form-group">
+            <label>Nome da Barbearia</label>
+            <input type="text" name="nome" required>
+        </div>
+
+        <div class="form-group">
+            <label>Slug (URL)</label>
+            <input type="text" name="slug" required>
+        </div>
+
+        <div class="form-group">
+            <label>E-mail do Administrador</label>
+            <input type="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+            <label>Senha</label>
+            <input type="password" name="senha" required>
+        </div>
+
+        <button class="btn btn-gold">
+            Criar Barbearia
+        </button>
+
+    </form>
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- LISTA COMPLETA -->
+<!-- ================================================= -->
+<div class="card">
+    <h3 style="margin-bottom:15px;">Barbearias Cadastradas</h3>
+
+    {% if tenants and tenants|length > 0 %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Slug</th>
+            <th>Status</th>
+            <th>Público</th>
+            <th>Painel</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for tenant in tenants %}
+        <tr>
+            <td><strong>{{ tenant.nome }}</strong></td>
+            <td>{{ tenant.slug }}</td>
+
+            <td>
+                {% if tenant.ativo %}
+                    <span class="badge badge-success">Ativa</span>
+                {% else %}
+                    <span class="badge badge-danger">Inativa</span>
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="/{{ tenant.slug }}/agendar" target="_blank">
+                    Agendamento
+                </a>
+            </td>
+
+            <td>
+                <form method="POST"
+                      action="{{ url_for('admin.access_tenant', tenant_id=tenant.id) }}">
+                    <button class="btn btn-sm btn-gold">
+                        Acessar
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+        <p class="muted">Nenhuma barbearia cadastrada.</p>
+    {% endif %}
+</div>
+
+
+{% endblock %}
+
+
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const faturamentoLabels = [
+    {% for m,v in faturamento_mensal %}
+        "{{ m }}",
+    {% endfor %}
+];
+
+const faturamentoValues = [
+    {% for m,v in faturamento_mensal %}
+        {{ v }},
+    {% endfor %}
+];
+
+const ctx = document.getElementById("chartFaturamento");
+
+if(ctx){
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: faturamentoLabels,
+            datasets: [{
+                label: "Faturamento Mensal",
+                data: faturamentoValues,
+                borderWidth: 3,
+                tension: .3
+            }]
+        }
+    });
+}
+</script>
+{% endblock %}

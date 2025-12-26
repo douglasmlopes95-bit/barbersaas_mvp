@@ -3,13 +3,13 @@ from flask import abort
 from flask_login import current_user, login_required
 
 # =========================================================
-# DECORATOR: LOGIN OBRIGATÓRIO
+# DECORATOR: LOGIN OBRIGATÓRIO (ABSTRAÇÃO)
 # =========================================================
 
 def login_required_view(func):
     """
-    Wrapper para garantir login antes de acessar a view.
-    (Útil se quiser customizar depois)
+    Wrapper base para exigir autenticação.
+    Útil para centralizar comportamento futuramente.
     """
     @wraps(func)
     @login_required
@@ -29,14 +29,14 @@ def admin_global_required(func):
     @wraps(func)
     @login_required
     def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin_global():
+        if not current_user.is_admin_global():
             abort(403)
         return func(*args, **kwargs)
     return wrapper
 
 
 # =========================================================
-# DECORATOR: ADMIN DA BARBEARIA
+# DECORATOR: APENAS ADMIN DA BARBEARIA
 # =========================================================
 
 def tenant_admin_required(func):
@@ -46,14 +46,14 @@ def tenant_admin_required(func):
     @wraps(func)
     @login_required
     def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_tenant_admin():
+        if not current_user.is_tenant_admin():
             abort(403)
         return func(*args, **kwargs)
     return wrapper
 
 
 # =========================================================
-# DECORATOR: BARBEIRO
+# DECORATOR: APENAS BARBEIRO
 # =========================================================
 
 def barber_required(func):
@@ -63,14 +63,14 @@ def barber_required(func):
     @wraps(func)
     @login_required
     def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_barber():
+        if not current_user.is_barber():
             abort(403)
         return func(*args, **kwargs)
     return wrapper
 
 
 # =========================================================
-# DECORATOR: TENANT ADMIN OU BARBEIRO
+# DECORATOR: ADMIN DA BARBEARIA OU BARBEIRO
 # =========================================================
 
 def tenant_or_barber_required(func):
@@ -80,11 +80,7 @@ def tenant_or_barber_required(func):
     @wraps(func)
     @login_required
     def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated:
-            abort(403)
-
         if not (current_user.is_tenant_admin() or current_user.is_barber()):
             abort(403)
-
         return func(*args, **kwargs)
     return wrapper

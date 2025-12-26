@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, render_template
+from flask import Flask, render_template
 from dotenv import load_dotenv
 from flask_migrate import Migrate
 from datetime import datetime
@@ -24,12 +24,17 @@ def create_app():
     # Carrega configuração baseada no ambiente
     app.config.from_object(get_config())
 
-    # Inicializa extensões
+    # =====================================================
+    # INICIALIZA EXTENSÕES
+    # =====================================================
     db.init_app(app)
     login_manager.init_app(app)
 
-    # Migrações
-    Migrate(app, db)
+    # =====================================================
+    # MIGRAÇÕES (Flask-Migrate / Alembic)
+    # =====================================================
+    migrate = Migrate()
+    migrate.init_app(app, db)
 
     # =====================================================
     # REGISTRO DE BLUEPRINTS
@@ -53,24 +58,16 @@ def create_app():
     # =====================================================
     @app.route("/")
     def landing():
-        """
-        Landing page pública do BarberSaaS
-        """
         return render_template("landing.html")
 
     # =====================================================
-    # CONTEXT PROCESSOR
+    # CONTEXT PROCESSOR GLOBAL
     # =====================================================
     @app.context_processor
     def inject_now():
-        return {"now": datetime.utcnow}
-
-    # =====================================================
-    # BANCO / SEED INICIAL
-    # =====================================================
-    with app.app_context():
-        db.create_all()
-        seed_admin()
+        return {
+            "now": datetime.utcnow
+        }
 
     return app
 
@@ -87,13 +84,14 @@ def load_user(user_id):
 
 
 # =========================================================
-# SEED ADMIN GLOBAL
+# SEED ADMIN GLOBAL (USO MANUAL / FUTURO CLI)
 # =========================================================
 
 def seed_admin():
     """
     Cria o usuário ADMIN_GLOBAL inicial
     apenas se não existir.
+    NÃO deve ser chamado automaticamente no create_app.
     """
     from werkzeug.security import generate_password_hash
     import os
@@ -106,7 +104,8 @@ def seed_admin():
             nome="Administrador",
             email=admin_email,
             senha=generate_password_hash(admin_password),
-            role="ADMIN_GLOBAL"
+            role="ADMIN_GLOBAL",
+            ativo=True
         )
         db.session.add(admin)
         db.session.commit()

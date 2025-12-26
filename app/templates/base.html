@@ -10,14 +10,33 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
 </head>
 <body>
 
+    <!-- ================================================= -->
     <!-- HEADER -->
+    <!-- ================================================= -->
     <header class="header container">
-        <h1><span>Barber</span>SaaS</h1>
 
+        <!-- LOGO / MARCA (WHITE LABEL) -->
+        {% if tenant is defined and tenant and tenant.logo_url %}
+            <div style="display:flex; align-items:center; gap:12px;">
+                <img
+                    src="{{ tenant.logo_url }}"
+                    alt="Logo {{ tenant.nome }}"
+                    style="height:48px;"
+                >
+                <h1>
+                    <span>{{ tenant.nome }}</span>
+                </h1>
+            </div>
+        {% else %}
+            <h1>
+                <span>Barber</span>SaaS
+            </h1>
+        {% endif %}
+
+        <!-- NAV -->
         {% if current_user.is_authenticated %}
             <nav>
                 {% if current_user.is_admin_global() %}
@@ -29,10 +48,14 @@
                 <a href="{{ url_for('auth.logout') }}">Sair</a>
             </nav>
         {% endif %}
+
     </header>
 
+    <!-- ================================================= -->
     <!-- CONTEÚDO -->
+    <!-- ================================================= -->
     <main class="container">
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -44,9 +67,12 @@
         {% endwith %}
 
         {% block content %}{% endblock %}
+
     </main>
 
+    <!-- ================================================= -->
     <!-- FOOTER -->
+    <!-- ================================================= -->
     <footer class="footer">
         © {{ now().year }} BarberSaaS • Todos os direitos reservados
     </footer>

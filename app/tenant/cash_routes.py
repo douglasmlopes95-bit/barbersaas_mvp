@@ -69,11 +69,9 @@ def open_cash():
     tenant_id = current_user.tenant_id
 
     try:
-        valor_inicial = Decimal(
-            request.form.get("saldo_inicial", "0")
-        )
+        valor_inicial = Decimal(request.form.get("saldo_inicial", "0"))
     except Exception:
-        valor_inicial = Decimal("0")
+        valor_inicial = Decimal("0.00")
 
     try:
         caixa = CashSession.abrir_caixa(
@@ -150,7 +148,7 @@ def manual_movement():
     try:
         valor = Decimal(request.form.get("valor", "0"))
     except Exception:
-        valor = Decimal("0")
+        valor = Decimal("0.00")
 
     if valor <= 0 or tipo not in ["ENTRADA", "SAIDA"]:
         flash("Movimentação inválida", "danger")
@@ -198,11 +196,12 @@ def sync_payments():
 
     pagamentos = Payment.query.filter_by(
         tenant_id=tenant_id,
-        status="PAGO"
+        status="PAGO",
+        sincronizado_caixa=False
     ).all()
 
     if not pagamentos:
-        flash("Nenhum pagamento encontrado", "warning")
+        flash("Nenhum pagamento pendente para sincronizar", "warning")
         return redirect(url_for("cash.overview"))
 
     for p in pagamentos:
@@ -216,6 +215,11 @@ def sync_payments():
             metodo_pagamento=p.metodo_pagamento,
             payment_id=p.id
         )
+
+        p.sincronizado_caixa = True
+        db.session.add(p)
+
+    db.session.commit()
 
     flash("Pagamentos sincronizados com o caixa", "success")
     return redirect(url_for("cash.overview"))

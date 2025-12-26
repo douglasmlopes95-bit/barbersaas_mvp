@@ -9,6 +9,7 @@ class CashMovement(db.Model):
     Movimentações de Caixa
 
     Representa QUALQUER entrada ou saída financeira:
+    - Serviços concluídos
     - Pagamentos de clientes
     - Despesas operacionais
     - Ajustes manuais
@@ -80,6 +81,13 @@ class CashMovement(db.Model):
     # ==============================
     # VÍNCULOS OPCIONAIS
     # ==============================
+    appointment_id = db.Column(
+        db.Integer,
+        db.ForeignKey("appointments.id"),
+        nullable=True,
+        index=True
+    )
+
     payment_id = db.Column(
         db.Integer,
         db.ForeignKey("payments.id"),
@@ -134,20 +142,24 @@ class CashMovement(db.Model):
         categoria=None,
         descricao=None,
         metodo_pagamento=None,
+        appointment_id=None,
         payment_id=None
     ):
         """
         Registra entrada no caixa
         """
+        valor = Decimal(valor)
+
         movimento = CashMovement(
             tenant_id=tenant_id,
             cash_session_id=cash_session.id,
             usuario_id=usuario_id,
             tipo="ENTRADA",
-            valor=Decimal(valor),
+            valor=valor,
             categoria=categoria,
             descricao=descricao,
             metodo_pagamento=metodo_pagamento,
+            appointment_id=appointment_id,
             payment_id=payment_id
         )
 
@@ -170,12 +182,14 @@ class CashMovement(db.Model):
         """
         Registra saída no caixa
         """
+        valor = Decimal(valor)
+
         movimento = CashMovement(
             tenant_id=tenant_id,
             cash_session_id=cash_session.id,
             usuario_id=usuario_id,
             tipo="SAIDA",
-            valor=Decimal(valor),
+            valor=valor,
             categoria=categoria,
             descricao=descricao,
             expense_id=expense_id
@@ -200,22 +214,23 @@ class CashMovement(db.Model):
         """
         valor = Decimal(valor)
         tipo_movimento = "ENTRADA" if valor >= 0 else "SAIDA"
+        valor_abs = abs(valor)
 
         movimento = CashMovement(
             tenant_id=tenant_id,
             cash_session_id=cash_session.id,
             usuario_id=usuario_id,
             tipo="AJUSTE",
-            valor=abs(valor),
+            valor=valor_abs,
             descricao=descricao
         )
 
         db.session.add(movimento)
 
         if tipo_movimento == "ENTRADA":
-            cash_session.registrar_entrada(abs(valor))
+            cash_session.registrar_entrada(valor_abs)
         else:
-            cash_session.registrar_saida(abs(valor))
+            cash_session.registrar_saida(valor_abs)
 
         db.session.commit()
 

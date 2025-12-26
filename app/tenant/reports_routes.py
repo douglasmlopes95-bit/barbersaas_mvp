@@ -10,7 +10,6 @@ from decimal import Decimal
 from app.extensions import db
 from app.models.appointment import Appointment
 from app.models.service import Service
-from app.models.payment import Payment
 from app.models.expense import Expense
 from app.models.cash_session import CashSession
 from app.models.cash_movement import CashMovement
@@ -38,9 +37,9 @@ def overview():
 
     tenant_id = current_user.tenant_id
 
-    # -------------------------------------------------
+    # =====================================================
     # FILTRO DE PERÍODO
-    # -------------------------------------------------
+    # =====================================================
     start = request.args.get("start")
     end = request.args.get("end")
 
@@ -54,20 +53,23 @@ def overview():
         if end else date.today()
     )
 
-    # -------------------------------------------------
-    # FATURAMENTO
-    # -------------------------------------------------
+    # =====================================================
+    # FATURAMENTO (AGORA VEM DO CASHMOVEMENT)
+    # Apenas movimentos de SERVIÇO contam como faturamento
+    # =====================================================
     faturamento = db.session.query(
-        func.coalesce(func.sum(Payment.valor), 0)
+        func.coalesce(func.sum(CashMovement.valor), 0)
     ).filter(
-        Payment.tenant_id == tenant_id,
-        Payment.status == "PAGO",
-        Payment.data.between(start_date, end_date)
+        CashMovement.tenant_id == tenant_id,
+        CashMovement.categoria == "SERVICO",
+        CashMovement.criado_em.between(start_date, end_date)
     ).scalar()
 
-    # -------------------------------------------------
+    faturamento = Decimal(faturamento or 0)
+
+    # =====================================================
     # DESPESAS
-    # -------------------------------------------------
+    # =====================================================
     despesas = db.session.query(
         func.coalesce(func.sum(Expense.valor), 0)
     ).filter(
@@ -75,11 +77,16 @@ def overview():
         Expense.data.between(start_date, end_date)
     ).scalar()
 
-    lucro = Decimal(faturamento) - Decimal(despesas)
+    despesas = Decimal(despesas or 0)
 
-    # -------------------------------------------------
+    # =====================================================
+    # LUCRO
+    # =====================================================
+    lucro = faturamento - despesas
+
+    # =====================================================
     # AGENDAMENTOS / TICKET MÉDIO
-    # -------------------------------------------------
+    # =====================================================
     total_agendamentos = Appointment.query.filter(
         Appointment.tenant_id == tenant_id,
         Appointment.status == "CONCLUIDO",
@@ -87,13 +94,13 @@ def overview():
     ).count()
 
     ticket_medio = (
-        Decimal(faturamento) / total_agendamentos
+        faturamento / total_agendamentos
         if total_agendamentos > 0 else Decimal("0.00")
     )
 
-    # -------------------------------------------------
+    # =====================================================
     # TOP SERVIÇOS
-    # -------------------------------------------------
+    # =====================================================
     top_services = db.session.query(
         Service.nome,
         func.count(Appointment.id)
@@ -102,16 +109,17 @@ def overview():
     ).filter(
         Appointment.tenant_id == tenant_id,
         Appointment.status == "CONCLUIDO",
-        Appointment.data_hora.between(start_date, end_date)
+        Appointment.data_hora.between(start_date, end_date),
+        Service.excluido == False
     ).group_by(
         Service.nome
     ).order_by(
         func.count(Appointment.id).desc()
     ).limit(5).all()
 
-    # -------------------------------------------------
+    # =====================================================
     # FLUXO DE CAIXA
-    # -------------------------------------------------
+    # =====================================================
     entradas = db.session.query(
         func.coalesce(func.sum(CashMovement.valor), 0)
     ).filter(
@@ -128,7 +136,10 @@ def overview():
         CashMovement.criado_em.between(start_date, end_date)
     ).scalar()
 
-    saldo_caixa = Decimal(entradas) - Decimal(saidas)
+    entradas = Decimal(entradas or 0)
+    saidas = Decimal(saidas or 0)
+
+    saldo_caixa = entradas - saidas
 
     return render_template(
         "tenant_reports.html",
@@ -144,6 +155,7 @@ def overview():
         saidas=saidas,
         saldo_caixa=saldo_caixa
     )
+
 
 # =========================================================
 # HISTÓRICO DE CAIXA
@@ -166,6 +178,7 @@ def cash_history():
         "reports/cash_history.html",
         sessions=sessions
     )
+
 
 # =========================================================
 # DETALHE DO CAIXA

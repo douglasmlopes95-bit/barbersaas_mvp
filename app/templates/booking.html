@@ -4,76 +4,188 @@
 
 {% block content %}
 
-<div class="booking-header">
-    <h1>Agendar em <span>{{ tenant.nome }}</span></h1>
-    <p style="color:#9a9a9a;">
-        Escolha o serviço e um horário disponível
-    </p>
+<!-- ============================= -->
+<!-- HEADER BARBEARIA -->
+<!-- ============================= -->
+<div class="booking-header" style="text-align:center; margin-bottom:30px;">
+
+    {% if tenant.logo_url %}
+        <img
+            src="{{ tenant.logo_url }}"
+            alt="Logo {{ tenant.nome }}"
+            style="max-height:110px; margin-bottom:12px;"
+        >
+    {% endif %}
+
+    <h1 style="font-size:28px; font-weight:700;">
+        Agendar em <span style="color:#d4af37;">{{ tenant.nome }}</span>
+    </h1>
+
+    {% if tenant.descricao %}
+        <p style="color:#bdbdbd; margin-top:6px;">
+            {{ tenant.descricao }}
+        </p>
+    {% endif %}
+
+    {% if tenant.endereco or tenant.whatsapp %}
+        <p style="font-size:14px; color:#9b9b9b; margin-top:10px;">
+
+            {% if tenant.endereco %}
+                📍 {{ tenant.endereco }}
+            {% endif %}
+
+            {% if tenant.endereco and tenant.whatsapp %}
+                &nbsp;•&nbsp;
+            {% endif %}
+
+            {% if tenant.whatsapp %}
+                {% set wa = tenant.whatsapp
+                    |replace('(', '')
+                    |replace(')', '')
+                    |replace('-', '')
+                    |replace(' ', '')
+                %}
+                📞 
+                <a href="https://wa.me/55{{ wa }}" 
+                   target="_blank" 
+                   style="color:#d4af37; text-decoration:none;">
+                    WhatsApp: {{ tenant.whatsapp }}
+                </a>
+            {% endif %}
+        </p>
+    {% endif %}
 </div>
 
+
+<!-- ============================= -->
+<!-- CARD AGENDAMENTO -->
+<!-- ============================= -->
 <div class="card" style="max-width:600px; margin:0 auto;">
 
-    <form method="POST">
+<form method="POST">
 
-        <!-- SERVIÇO -->
-        <div class="form-group">
-            <label>Serviço</label>
-            <select name="service_id" required>
-                <option value="">Selecione um serviço</option>
-                {% for service in services %}
-                    <option value="{{ service.id }}">
-                        {{ service.nome }} — R$ {{ "%.2f"|format(service.preco) }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+    <!-- BARBEIRO -->
+    <div class="form-group">
+        <label>Barbeiro</label>
+        <select id="barberSelect" name="barber_id" required>
+            <option value="">Selecione um barbeiro</option>
+            {% for barber in barbers %}
+                <option value="{{ barber.id }}">
+                    {{ barber.nome }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
 
-        <!-- HORÁRIO DISPONÍVEL -->
-        <div class="form-group">
-            <label>Horário disponível</label>
-            <select name="slot_id" required>
-                <option value="">Selecione um horário</option>
-                {% for slot in slots %}
-                    <option value="{{ slot.id }}">
-                        {{ slot.data.strftime("%d/%m/%Y") }}
-                        às
-                        {{ slot.hora.strftime("%H:%M") }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+    <!-- SERVIÇO -->
+    <div class="form-group">
+        <label>Serviço</label>
+        <select id="serviceSelect" name="service_id" required disabled>
+            <option value="">Selecione um barbeiro primeiro</option>
+        </select>
+    </div>
 
-        <!-- CLIENTE -->
-        <div class="form-group">
-            <label>Seu nome</label>
-            <input
-                type="text"
-                name="cliente_nome"
-                placeholder="Ex: João Silva"
-                required
-            >
-        </div>
+    <!-- HORÁRIO DISPONÍVEL -->
+    <div class="form-group">
+        <label>Horário disponível</label>
+        <select id="slotSelect" name="slot_id" required disabled>
+            <option value="">Selecione um barbeiro primeiro</option>
+        </select>
+    </div>
 
-        <div class="form-group">
-            <label>WhatsApp</label>
-            <input
-                type="text"
-                name="cliente_whatsapp"
-                placeholder="(DDD) 9xxxx-xxxx"
-                required
-            >
-        </div>
+    <!-- DADOS DO CLIENTE -->
+    <div class="form-group">
+        <label>Seu nome</label>
+        <input
+            type="text"
+            name="cliente_nome"
+            placeholder="Ex: João Silva"
+            required
+        >
+    </div>
 
-        <button class="btn btn-gold" style="width:100%; margin-top:10px;">
-            Confirmar Agendamento
-        </button>
+    <div class="form-group">
+        <label>WhatsApp</label>
+        <input
+            type="text"
+            name="cliente_whatsapp"
+            placeholder="(DDD) 9xxxx-xxxx"
+            required
+        >
+    </div>
 
-    </form>
+    <button class="btn btn-gold" style="width:100%; margin-top:12px;">
+        Confirmar Agendamento
+    </button>
+
+</form>
 
 </div>
 
+<!-- ============================= -->
+<!-- FOOTER -->
+<!-- ============================= -->
 <div style="text-align:center; margin-top:30px; font-size:13px; color:#9a9a9a;">
     Sistema de agendamento profissional • BarberSaaS
 </div>
+
+<!-- ============================= -->
+<!-- JS FILTRO DINÂMICO -->
+<!-- ============================= -->
+<script>
+const services = {{ services|tojson }};
+const slots = {{ slots|tojson }};
+
+const barberSelect = document.getElementById("barberSelect");
+const serviceSelect = document.getElementById("serviceSelect");
+const slotSelect = document.getElementById("slotSelect");
+
+barberSelect.addEventListener("change", () => {
+
+    serviceSelect.innerHTML = "";
+    slotSelect.innerHTML = "";
+
+    const barberId = barberSelect.value;
+
+    if(!barberId){
+        serviceSelect.disabled = true;
+        slotSelect.disabled = true;
+
+        serviceSelect.innerHTML =
+            `<option value="">Selecione um barbeiro primeiro</option>`;
+        slotSelect.innerHTML =
+            `<option value="">Selecione um barbeiro primeiro</option>`;
+
+        return;
+    }
+
+    // FILTRAR SERVIÇOS DO BARBEIRO
+    const filteredServices = services.filter(s => s.barber_id == barberId);
+
+    serviceSelect.disabled = false;
+    serviceSelect.innerHTML = `<option value="">Selecione um serviço</option>`;
+
+    filteredServices.forEach(s => {
+        serviceSelect.innerHTML += `
+            <option value="${s.id}">
+                ${s.nome} — R$ ${parseFloat(s.preco).toFixed(2)}
+            </option>`;
+    });
+
+    // FILTRAR HORÁRIOS DO BARBEIRO
+    const filteredSlots = slots.filter(s => s.barber_id == barberId);
+
+    slotSelect.disabled = false;
+    slotSelect.innerHTML = `<option value="">Selecione um horário</option>`;
+
+    filteredSlots.forEach(s => {
+        slotSelect.innerHTML += `
+            <option value="${s.id}">
+                ${s.data} às ${s.hora}
+            </option>`;
+    });
+
+});
+</script>
 
 {% endblock %}

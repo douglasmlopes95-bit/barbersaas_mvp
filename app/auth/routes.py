@@ -8,8 +8,8 @@ from flask_login import (
     login_required
 )
 
-from app.models.user import User
 from app.extensions import db
+from app.models.user import User
 
 # =========================================================
 # BLUEPRINT
@@ -36,6 +36,7 @@ def login():
     if request.method == "POST":
         email = request.form.get("email")
         senha = request.form.get("senha")
+        next_url = request.args.get("next")
 
         if not email or not senha:
             flash("Preencha todos os campos", "danger")
@@ -43,7 +44,8 @@ def login():
 
         user = User.query.filter_by(
             email=email,
-            ativo=True
+            ativo=True,
+            excluido=False
         ).first()
 
         if not user or not user.check_password(senha):
@@ -52,7 +54,12 @@ def login():
 
         login_user(user)
 
-        # Redirecionamento por papel
+        # ---------------------------------
+        # REDIRECIONAMENTO
+        # ---------------------------------
+        if next_url:
+            return redirect(next_url)
+
         if user.is_admin_global():
             return redirect(url_for("admin.dashboard"))
 

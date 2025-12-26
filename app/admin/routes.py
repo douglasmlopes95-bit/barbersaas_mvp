@@ -3,16 +3,19 @@ from flask import (
     request, redirect, url_for,
     flash, abort
 )
-from werkzeug.security import generate_password_hash
-from flask_login import login_required, current_user
+from flask_login import (
+    login_required,
+    current_user,
+    login_user
+)
+
+from sqlalchemy import func
+from datetime import datetime, timedelta
 
 from app.extensions import db
 from app.models.tenant import Tenant
 from app.models.user import User
 
-# =========================================================
-# BLUEPRINT
-# =========================================================
 
 admin_bp = Blueprint(
     "admin",
@@ -20,75 +23,226 @@ admin_bp = Blueprint(
     url_prefix="/admin"
 )
 
+
 # =========================================================
 # DASHBOARD ADMIN GLOBAL
 # =========================================================
-
-@admin_bp.route("/dashboard", methods=["GET", "POST"])
+@admin_bp.route("/dashboard", methods=["GET"])
 @login_required
 def dashboard():
-    """
-    Dashboard do ADMIN_GLOBAL:
-    - Cria barbearias
-    - Cria admin da barbearia
-    - Lista barbearias
-    """
 
-    # Segurança: apenas ADMIN_GLOBAL
     if not current_user.is_admin_global():
         abort(403)
 
-    # ---------------------------------
-    # CRIAR BARBEARIA
-    # ---------------------------------
+    tenants = Tenant.query.order_by(Tenant.criado_em.desc()).all()
+
+    total_tenants = len(tenants)
+    ativos = len([t for t in tenants if t.ativo])
+    inativos = len([t for t in tenants if not t.ativo])
+
+    # =====================================================
+    # PERÍODO FILTRADO
+    # =====================================================
+    period = request.args.get("period", "30")
+
+    try:
+        days = int(period)
+    except:
+        days = 30
+
+    start_date = datetime.utcnow() - timedelta(days=days)
+
+    total_faturamento = 0
+    ranking = []
+    faturamento_mensal = []
+
+    try:
+        from app.models.cash_movement import CashMovement
+
+        # =====================================================
+        # FATURAMENTO TOTAL DO PERÍODO
+        # =====================================================
+        total_faturamento = (
+            db.session.query(func.sum(CashMovement.valor))
+            .filter(CashMovement.tipo == "ENTRADA")
+            .filter(CashMovement.criado_em >= start_date)
+            .scalar()
+        ) or 0
+
+        # =====================================================
+        # RANKING DE BARBEARIAS
+        # =====================================================
+        ranking_query = (
+            db.session.query(
+                Tenant,
+                func.coalesce(func.sum(CashMovement.valor), 0).label("faturamento")
+            )
+            .outerjoin(CashMovement, CashMovement.tenant_id == Tenant.id)
+            .filter(
+                (CashMovement.tipo == "ENTRADA") |
+                (CashMovement.tipo.is_(None))
+            )
+            .filter(
+                (CashMovement.criado_em >= start_date) |
+                (CashMovement.criado_em.is_(None))
+            )
+            .group_by(Tenant.id)
+            .order_by(func.sum(CashMovement.valor).desc())
+            .all()
+        )
+
+        ranking = [
+            {
+                "tenant": r[0],
+                "faturamento": float(r[1] or 0)
+            }
+            for r in ranking_query
+        ]
+
+        # =====================================================
+        # GRÁFICO MENSAL
+        # =====================================================
+        faturamento_raw = (
+            db.session.query(
+                func.strftime("%Y-%m", CashMovement.criado_em).label("mes"),
+                func.sum(CashMovement.valor)
+            )
+            .filter(CashMovement.tipo == "ENTRADA")
+            .filter(CashMovement.criado_em >= start_date)
+            .group_by("mes")
+            .order_by("mes")
+            .all()
+        )
+
+        faturamento_mensal = [(m, float(v or 0)) for m, v in faturamento_raw]
+
+    except Exception as e:
+        print("Dashboard Financeiro não disponível:", e)
+
+    return render_template(
+        "admin/dashboard.html",
+
+        tenants=tenants,
+
+        total_tenants=total_tenants,
+        ativos=ativos,
+        inativos=inativos,
+
+        period=str(period),
+
+        total_faturamento=total_faturamento,
+        ranking=ranking,
+        faturamento_mensal=faturamento_mensal
+    )
+
+
+
+# =========================================================
+# LISTAGEM DE BARBEARIAS
+# =========================================================
+@admin_bp.route("/tenants", methods=["GET", "POST"])
+@login_required
+def tenants_list():
+
+    if not current_user.is_admin_global():
+        abort(403)
+
     if request.method == "POST":
         nome = request.form.get("nome")
         slug = request.form.get("slug")
         email = request.form.get("email")
         senha = request.form.get("senha")
 
-        # Validações básicas
         if not all([nome, slug, email, senha]):
             flash("Preencha todos os campos", "danger")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.tenants_list"))
+
+        slug = slug.strip().lower()
 
         if Tenant.query.filter_by(slug=slug).first():
             flash("Slug já existe", "danger")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.tenants_list"))
 
         if User.query.filter_by(email=email).first():
             flash("E-mail já cadastrado", "danger")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.tenants_list"))
 
-        # Cria tenant
-        tenant = Tenant(
-            nome=nome,
-            slug=slug
-        )
+        tenant = Tenant(nome=nome, slug=slug, ativo=True)
         db.session.add(tenant)
         db.session.commit()
 
-        # Cria admin da barbearia
-        tenant_admin = User(
+        admin_tenant = User(
             nome=nome,
             email=email,
             role="TENANT_ADMIN",
-            tenant_id=tenant.id
+            tenant_id=tenant.id,
+            ativo=True
         )
-        tenant_admin.senha = generate_password_hash(senha)
+        admin_tenant.set_password(senha)
 
-        db.session.add(tenant_admin)
+        db.session.add(admin_tenant)
         db.session.commit()
 
         flash("Barbearia criada com sucesso", "success")
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("admin.tenants_list"))
 
-    # ---------------------------------
-    # LISTAGEM
-    # ---------------------------------
     tenants = Tenant.query.order_by(Tenant.criado_em.desc()).all()
 
     return render_template(
-        "admin_dashboard.html",
+        "admin/tenants_list.html",
         tenants=tenants
     )
+
+
+
+# =========================================================
+# DETALHE
+# =========================================================
+@admin_bp.route("/tenants/<int:tenant_id>", methods=["GET"])
+@login_required
+def tenant_detail(tenant_id):
+
+    if not current_user.is_admin_global():
+        abort(403)
+
+    tenant = Tenant.query.get_or_404(tenant_id)
+
+    admins = User.query.filter_by(
+        tenant_id=tenant.id,
+        role="TENANT_ADMIN"
+    ).all()
+
+    return render_template(
+        "admin/tenant_detail.html",
+        tenant=tenant,
+        admins=admins
+    )
+
+
+
+# =========================================================
+# IMPERSONAÇÃO
+# =========================================================
+@admin_bp.route("/tenants/<int:tenant_id>/access", methods=["GET", "POST"])
+@login_required
+def access_tenant(tenant_id):
+
+    if not current_user.is_admin_global():
+        abort(403)
+
+    tenant = Tenant.query.get_or_404(tenant_id)
+
+    admin_tenant = User.query.filter_by(
+        tenant_id=tenant.id,
+        role="TENANT_ADMIN",
+        ativo=True
+    ).first()
+
+    if not admin_tenant:
+        flash("Nenhum administrador encontrado para esta barbearia", "danger")
+        return redirect(url_for("admin.tenant_detail", tenant_id=tenant.id))
+
+    login_user(admin_tenant)
+    flash(f"Acessando {tenant.nome}", "success")
+
+    return redirect(url_for("tenant.dashboard"))
