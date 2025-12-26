@@ -14,6 +14,7 @@ from app.models.expense import Expense
 from app.models.cash_session import CashSession
 from app.models.cash_movement import CashMovement
 
+
 # =========================================================
 # BLUEPRINT
 # =========================================================
@@ -24,10 +25,10 @@ tenant_reports_bp = Blueprint(
     url_prefix="/dashboard/reports"
 )
 
+
 # =========================================================
 # RELATÓRIOS — VISÃO GERAL
 # =========================================================
-
 @tenant_reports_bp.route("/", methods=["GET"])
 @login_required
 def overview():
@@ -54,15 +55,15 @@ def overview():
     )
 
     # =====================================================
-    # FATURAMENTO (AGORA VEM DO CASHMOVEMENT)
-    # Apenas movimentos de SERVIÇO contam como faturamento
+    # FATURAMENTO — vem de CashMovement
+    # Apenas categoria SERVICO conta
     # =====================================================
     faturamento = db.session.query(
         func.coalesce(func.sum(CashMovement.valor), 0)
     ).filter(
         CashMovement.tenant_id == tenant_id,
         CashMovement.categoria == "SERVICO",
-        CashMovement.criado_em.between(start_date, end_date)
+        func.date(CashMovement.criado_em).between(start_date, end_date)
     ).scalar()
 
     faturamento = Decimal(faturamento or 0)
@@ -125,7 +126,7 @@ def overview():
     ).filter(
         CashMovement.tenant_id == tenant_id,
         CashMovement.tipo == "ENTRADA",
-        CashMovement.criado_em.between(start_date, end_date)
+        func.date(CashMovement.criado_em).between(start_date, end_date)
     ).scalar()
 
     saidas = db.session.query(
@@ -133,7 +134,7 @@ def overview():
     ).filter(
         CashMovement.tenant_id == tenant_id,
         CashMovement.tipo == "SAIDA",
-        CashMovement.criado_em.between(start_date, end_date)
+        func.date(CashMovement.criado_em).between(start_date, end_date)
     ).scalar()
 
     entradas = Decimal(entradas or 0)
@@ -160,7 +161,6 @@ def overview():
 # =========================================================
 # HISTÓRICO DE CAIXA
 # =========================================================
-
 @tenant_reports_bp.route("/cash", methods=["GET"])
 @login_required
 def cash_history():
@@ -183,7 +183,6 @@ def cash_history():
 # =========================================================
 # DETALHE DO CAIXA
 # =========================================================
-
 @tenant_reports_bp.route("/cash/<int:session_id>", methods=["GET"])
 @login_required
 def cash_detail(session_id):

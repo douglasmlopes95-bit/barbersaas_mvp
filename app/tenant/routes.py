@@ -16,7 +16,7 @@ from app.models.appointment import Appointment
 from app.models.available_slot import AvailableSlot
 from app.models.cash_session import CashSession
 from app.models.cash_movement import CashMovement
-from app.models.tenant import Tenant   # <-- IMPORT IMPORTANTE
+from app.models.tenant import Tenant
 
 
 # =========================================================
@@ -28,6 +28,7 @@ tenant_bp = Blueprint(
     __name__,
     url_prefix="/dashboard"
 )
+
 
 # =========================================================
 # DASHBOARD PRINCIPAL + AGENDA
@@ -43,7 +44,7 @@ def dashboard():
     tenant_id = current_user.tenant_id
 
     # =====================================================
-    # FILTROS DA AGENDA
+    # FILTROS
     # =====================================================
     filtro_data = request.args.get("data")
     filtro_status = request.args.get("status")
@@ -78,9 +79,6 @@ def dashboard():
         Appointment.data_hora.asc()
     ).all()
 
-    # =====================================================
-    # LISTAGENS
-    # =====================================================
     services = Service.query.filter_by(
         tenant_id=tenant_id,
         excluido=False
@@ -100,7 +98,7 @@ def dashboard():
     ).all()
 
     # =====================================================
-    # AÇÕES POST (ADMIN)
+    # POST (Apenas ADMIN)
     # =====================================================
     if request.method == "POST" and current_user.is_tenant_admin():
 
@@ -315,7 +313,6 @@ def complete_appointment(appointment_id):
         abort(403)
 
     appointment.concluir()
-
     service = Service.query.get(appointment.service_id)
 
     cash_session = CashSession.get_or_create_aberta(
@@ -339,7 +336,7 @@ def complete_appointment(appointment_id):
 
 
 # =========================================================
-# HUB
+# REDIRECIONADORES
 # =========================================================
 
 @tenant_bp.route("/reports")
@@ -392,8 +389,9 @@ def delete_slot(slot_id):
 
 
 # =========================================================
-# DADOS DA EMPRESA — NOVA ABA
+# DADOS DA EMPRESA — UPLOAD REAL
 # =========================================================
+
 @tenant_bp.route("/company", methods=["GET", "POST"])
 @login_required
 def company_settings():
@@ -407,10 +405,8 @@ def company_settings():
         tenant.descricao = request.form.get("descricao")
         tenant.endereco = request.form.get("endereco")
         tenant.whatsapp = request.form.get("whatsapp")
+        tenant.horario_funcionamento = request.form.get("horario")
 
-        # ==============================
-        # UPLOAD REAL DA LOGO
-        # ==============================
         file = request.files.get("logo")
 
         if file and file.filename != "":
@@ -424,11 +420,11 @@ def company_settings():
 
             file.save(file_path)
 
-            # SALVA NO CAMPO REAL DO BANCO
-            tenant.logo_filename = filename
+            tenant.logo = filename
+
+        tenant.atualizado_em = datetime.utcnow()
 
         db.session.commit()
-
         flash("Dados da empresa atualizados com sucesso!", "success")
         return redirect(url_for("tenant.company_settings"))
 
