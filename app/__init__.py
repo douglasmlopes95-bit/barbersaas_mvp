@@ -37,9 +37,8 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
-    # ⚠️ FIX PARA NÃO TRAVAR O RENDER
+    # FIX PARA NÃO TRAVAR O RENDER (não bloqueia startup)
     # =====================================================
-    # Tentativa leve — NÃO bloqueia startup
     try:
         from sqlalchemy import text
         with app.app_context():
@@ -72,7 +71,7 @@ def create_app():
     app.register_blueprint(booking_bp)
 
     # =====================================================
-    # HEALTHCHECK (Render exige rota válida)
+    # HEALTHCHECK — Render precisa disso
     # =====================================================
     @app.route("/healthz")
     def health():
@@ -114,7 +113,7 @@ def seed_admin():
     """
     Cria o usuário ADMIN_GLOBAL inicial
     apenas se não existir.
-    NÃO deve ser chamado automaticamente no create_app.
+    NÃO é chamado automaticamente.
     """
     from werkzeug.security import generate_password_hash
     import os
@@ -132,3 +131,6 @@ def seed_admin():
         )
         db.session.add(admin)
         db.session.commit()
+        print("✔ Admin global criado com sucesso")
+    else:
+        print("✔ Admin global já existe")
