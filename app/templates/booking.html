@@ -9,24 +9,12 @@
 <!-- ============================= -->
 <div class="booking-header" style="text-align:center; margin-bottom:30px;">
 
-    {% set logo = None %}
-
-    {% if tenant.logo_url %}
-        {% set logo = tenant.logo_url %}
-    {% elif tenant.logo %}
-        {% set logo = tenant.logo %}
-    {% elif current_user and current_user.tenant and current_user.tenant.logo %}
-        {% set logo = current_user.tenant.logo %}
-    {% endif %}
-
-    {% if logo %}
+    {% if tenant.logo %}
         <img 
-            src="{{ logo }}" 
+            src="{{ tenant.logo_url }}"
             alt="Logo {{ tenant.nome }}"
             style="
                 max-height:110px;
-                width:auto;
-                max-width:320px;
                 object-fit:contain;
                 margin-bottom:14px;
                 display:block;
