@@ -7,11 +7,19 @@
 <!-- ============================= -->
 <!-- HEADER -->
 <!-- ============================= -->
-<div class="header" style="display:flex; align-items:center; gap:16px;">
+<div class="header" style="text-align:center; margin-bottom:20px;">
+
     {% if current_user.tenant and current_user.tenant.logo %}
-        <img src="{{ current_user.tenant.logo }}" style="height:55px;">
+        <img 
+            src="{{ current_user.tenant.logo }}" 
+            alt="Logo"
+            style="max-height:130px; margin-bottom:10px;">
     {% endif %}
-    <h1>Dashboard <span>{{ current_user.tenant.nome if current_user.tenant else "Barbearia" }}</span></h1>
+
+    <h1>
+        Dashboard <span>{{ current_user.tenant.nome if current_user.tenant else "Barbearia" }}</span>
+    </h1>
+
 </div>
 
 <!-- ============================= -->
@@ -295,7 +303,6 @@
 <!-- BARBEIROS -->
 <!-- ============================= -->
 <div id="barbers" class="tab-content">
-
     {% if current_user.is_tenant_admin() %}
     <div class="card">
         <h3>Novo Barbeiro</h3>
