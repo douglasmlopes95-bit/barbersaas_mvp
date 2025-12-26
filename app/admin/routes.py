@@ -56,6 +56,9 @@ def dashboard():
     try:
         from app.models.cash_movement import CashMovement
 
+        # ============================
+        # TOTAL FATURAMENTO
+        # ============================
         total_faturamento = (
             db.session.query(func.sum(CashMovement.valor))
             .filter(CashMovement.tipo == "ENTRADA")
@@ -63,6 +66,9 @@ def dashboard():
             .scalar()
         ) or 0
 
+        # ============================
+        # RANKING DE TENANTS
+        # ============================
         ranking_query = (
             db.session.query(
                 Tenant,
@@ -87,9 +93,13 @@ def dashboard():
             for r in ranking_query
         ]
 
+        # ============================
+        # FATURAMENTO MENSAL
+        # PostgreSQL compatible
+        # ============================
         faturamento_raw = (
             db.session.query(
-                func.strftime("%Y-%m", CashMovement.criado_em).label("mes"),
+                func.to_char(CashMovement.criado_em, 'YYYY-MM').label("mes"),
                 func.sum(CashMovement.valor)
             )
             .filter(CashMovement.tipo == "ENTRADA")
@@ -223,7 +233,7 @@ def access_tenant(tenant_id):
         flash("Nenhum administrador encontrado para esta barbearia", "danger")
         return redirect(url_for("admin.tenant_detail", tenant_id=tenant.id))
 
-    # 🔥 salva quem era o admin global
+    # Salva quem era o admin global
     session["original_admin_id"] = current_user.id
 
     login_user(admin_tenant)

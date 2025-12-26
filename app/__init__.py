@@ -37,6 +37,37 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
+    # FIX – GARANTIR COLUNAS NO POSTGRES (Render)
+    # =====================================================
+    try:
+        from sqlalchemy import text
+        with app.app_context():
+
+            # -------- USERS.excluido ----------
+            db.session.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE;
+            """))
+
+            # -------- APPOINTMENTS.concluido_em ----------
+            db.session.execute(text("""
+                ALTER TABLE appointments
+                ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMP NULL;
+            """))
+
+            # -------- APPOINTMENTS.atualizado_em ----------
+            db.session.execute(text("""
+                ALTER TABLE appointments
+                ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP NULL;
+            """))
+
+            db.session.commit()
+            print("✔ Correções de colunas garantidas no banco")
+
+    except Exception as e:
+        print("⚠ Erro garantindo colunas no banco:", e)
+
+    # =====================================================
     # REGISTRO DE BLUEPRINTS
     # =====================================================
     from app.auth.routes import auth_bp
@@ -54,7 +85,7 @@ def create_app():
     app.register_blueprint(booking_bp)
 
     # =====================================================
-    # HEALTHCHECK — Render precisa disso
+    # HEALTHCHECK (Render exige rota válida)
     # =====================================================
     @app.route("/healthz")
     def health():
@@ -72,9 +103,7 @@ def create_app():
     # =====================================================
     @app.context_processor
     def inject_now():
-        return {
-            "now": datetime.utcnow
-        }
+        return {"now": datetime.utcnow}
 
     return app
 
