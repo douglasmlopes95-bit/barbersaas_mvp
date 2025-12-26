@@ -6,10 +6,10 @@ from datetime import datetime
 from config import get_config
 from app.extensions import db, login_manager
 
+
 # =========================================================
 # FACTORY
 # =========================================================
-
 def create_app():
     """
     Factory principal da aplicação.
@@ -37,21 +37,22 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
-    # GARANTIR COLUNA NO BANCO (Render Não Tem Shell)
+    # ⚠️ FIX PARA NÃO TRAVAR O RENDER
     # =====================================================
-    from sqlalchemy import text
-    with app.app_context():
-        try:
+    # Tentativa leve — NÃO bloqueia startup
+    try:
+        from sqlalchemy import text
+        with app.app_context():
             db.session.execute(
                 text("""
-                ALTER TABLE users
-                ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE
+                    ALTER TABLE users
+                    ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE
                 """)
             )
             db.session.commit()
             print("✔ Coluna 'excluido' garantida no banco de dados")
-        except Exception as e:
-            print("⚠ Erro ao tentar garantir coluna 'excluido':", e)
+    except Exception as e:
+        print("⚠ Erro ao tentar garantir coluna 'excluido':", e)
 
     # =====================================================
     # REGISTRO DE BLUEPRINTS
@@ -69,6 +70,13 @@ def create_app():
     app.register_blueprint(cash_bp)
     app.register_blueprint(tenant_reports_bp)
     app.register_blueprint(booking_bp)
+
+    # =====================================================
+    # HEALTHCHECK (Render exige rota válida)
+    # =====================================================
+    @app.route("/healthz")
+    def health():
+        return "OK", 200
 
     # =====================================================
     # ROTA RAIZ — LANDING PAGE
@@ -92,7 +100,6 @@ def create_app():
 # =========================================================
 # FLASK-LOGIN
 # =========================================================
-
 from app.models.user import User
 
 @login_manager.user_loader
@@ -101,9 +108,8 @@ def load_user(user_id):
 
 
 # =========================================================
-# SEED ADMIN GLOBAL (USO MANUAL / FUTURO CLI)
+# SEED ADMIN GLOBAL
 # =========================================================
-
 def seed_admin():
     """
     Cria o usuário ADMIN_GLOBAL inicial
