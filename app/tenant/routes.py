@@ -4,7 +4,7 @@ from flask import (
     flash, abort
 )
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
+    from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import os
@@ -174,18 +174,20 @@ def dashboard():
             return redirect(url_for("tenant.dashboard"))
 
         # -----------------------------
-        # EXCLUIR SERVIÇO
+        # EXCLUIR SERVIÇO (AJUSTADO)
         # -----------------------------
         if action == "delete_service":
             service = Service.query.get_or_404(
                 request.form.get("service_id")
             )
-            if service.tenant_id != tenant_id or not service.pode_excluir():
-                flash("Não é possível excluir este serviço", "danger")
-            else:
-                service.soft_delete()
-                db.session.commit()
-                flash("Serviço excluído", "success")
+
+            if service.tenant_id != tenant_id:
+                abort(403)
+
+            # Soft delete SEM bloquear
+            service.soft_delete()
+            db.session.commit()
+            flash("Serviço excluído com sucesso", "success")
             return redirect(url_for("tenant.dashboard"))
 
         # -----------------------------
