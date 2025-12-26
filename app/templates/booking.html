@@ -13,13 +13,31 @@
         <img
             src="{{ tenant.logo_url }}"
             alt="Logo {{ tenant.nome }}"
-            style="max-height:110px; margin-bottom:12px;"
+            style="
+                max-height:110px;
+                width:auto;
+                max-width:300px;
+                object-fit:contain;
+                margin-bottom:12px;
+                display:block;
+                margin-left:auto;
+                margin-right:auto;
+            "
         >
     {% elif tenant.logo %}
         <img
             src="{{ tenant.logo }}"
             alt="Logo {{ tenant.nome }}"
-            style="max-height:110px; margin-bottom:12px;"
+            style="
+                max-height:110px;
+                width:auto;
+                max-width:300px;
+                object-fit:contain;
+                margin-bottom:12px;
+                display:block;
+                margin-left:auto;
+                margin-right:auto;
+            "
         >
     {% endif %}
 
