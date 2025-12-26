@@ -37,6 +37,23 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
+    # GARANTIR COLUNA NO BANCO (Render Não Tem Shell)
+    # =====================================================
+    from sqlalchemy import text
+    with app.app_context():
+        try:
+            db.session.execute(
+                text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE
+                """)
+            )
+            db.session.commit()
+            print("✔ Coluna 'excluido' garantida no banco de dados")
+        except Exception as e:
+            print("⚠ Erro ao tentar garantir coluna 'excluido':", e)
+
+    # =====================================================
     # REGISTRO DE BLUEPRINTS
     # =====================================================
     from app.auth.routes import auth_bp
