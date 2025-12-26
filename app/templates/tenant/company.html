@@ -32,14 +32,14 @@
     </div>
 
     <!-- ============================= -->
-    <!-- LOGO ATUAL -->
+    <!-- LOGO ATUAL (Cloudinary / URL) -->
     <!-- ============================= -->
     <div class="form-group">
         <label>Logo da Barbearia</label>
 
         {% if tenant.logo %}
             <div style="margin-bottom:10px;">
-                <img src="{{ url_for('static', filename='uploads/logos/' ~ tenant.logo) }}"
+                <img src="{{ tenant.logo }}"
                      alt="Logo da Barbearia"
                      style="max-height:120px; border-radius:8px; border:1px solid #444;">
             </div>
@@ -48,7 +48,7 @@
         <input type="file" name="logo" accept="image/*">
 
         <small style="color:#aaa;">
-            Formatos aceitos: JPG, PNG, WEBP — A logo será armazenada com segurança no servidor.
+            Formatos aceitos: JPG, PNG, WEBP — sua logo será armazenada em nuvem com segurança.
         </small>
     </div>
 
