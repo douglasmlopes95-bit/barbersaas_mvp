@@ -15,6 +15,12 @@
             alt="Logo {{ tenant.nome }}"
             style="max-height:110px; margin-bottom:12px;"
         >
+    {% elif tenant.logo %}
+        <img
+            src="{{ tenant.logo }}"
+            alt="Logo {{ tenant.nome }}"
+            style="max-height:110px; margin-bottom:12px;"
+        >
     {% endif %}
 
     <h1 style="font-size:28px; font-weight:700;">
