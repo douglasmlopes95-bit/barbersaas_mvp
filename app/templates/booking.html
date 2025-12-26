@@ -9,12 +9,26 @@
 <!-- ============================= -->
 <div class="booking-header" style="text-align:center; margin-bottom:30px;">
 
+    {# ==============================
+       CORREÇÃO DEFINITIVA DA LOGO
+       ============================== #}
+    {% set logo = None %}
+
     {% if tenant.logo %}
+        {% if tenant.logo.startswith('http') %}
+            {% set logo = tenant.logo %}
+        {% else %}
+            {% set logo = '/static/uploads/logos/' ~ tenant.logo %}
+        {% endif %}
+    {% endif %}
+
+    {% if logo %}
         <img 
-            src="{{ tenant.logo_url }}"
+            src="{{ logo }}"
             alt="Logo {{ tenant.nome }}"
             style="
                 max-height:110px;
+                width:auto;
                 object-fit:contain;
                 margin-bottom:14px;
                 display:block;
