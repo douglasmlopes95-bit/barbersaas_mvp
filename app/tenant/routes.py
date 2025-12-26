@@ -4,7 +4,6 @@ from flask import (
     flash, abort
 )
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import os
@@ -17,6 +16,12 @@ from app.models.available_slot import AvailableSlot
 from app.models.cash_session import CashSession
 from app.models.cash_movement import CashMovement
 from app.models.tenant import Tenant
+
+# ============================
+# CLOUDINARY
+# ============================
+import cloudinary
+import cloudinary.uploader
 
 
 # =========================================================
@@ -392,7 +397,7 @@ def delete_slot(slot_id):
 
 
 # =========================================================
-# DADOS DA EMPRESA — UPLOAD REAL
+# DADOS DA EMPRESA — CLOUDINARY
 # =========================================================
 
 @tenant_bp.route("/company", methods=["GET", "POST"])
@@ -412,20 +417,12 @@ def company_settings():
 
         file = request.files.get("logo")
 
+        # ============================
+        # CLOUDINARY UPLOAD
+        # ============================
         if file and file.filename != "":
-            filename = secure_filename(file.filename)
-
-            upload_dir = os.path.join("static", "uploads", "logos")
-            os.makedirs(upload_dir, exist_ok=True)
-
-            filename = (
-                f"tenant_{tenant.id}_{int(datetime.utcnow().timestamp())}_{filename}"
-            )
-            file_path = os.path.join(upload_dir, filename)
-
-            file.save(file_path)
-
-            tenant.logo = filename
+            upload = cloudinary.uploader.upload(file)
+            tenant.logo = upload["secure_url"]
 
         tenant.atualizado_em = datetime.utcnow()
 

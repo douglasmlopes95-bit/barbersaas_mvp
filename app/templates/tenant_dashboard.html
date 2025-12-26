@@ -8,8 +8,8 @@
 <!-- HEADER -->
 <!-- ============================= -->
 <div class="header" style="display:flex; align-items:center; gap:16px;">
-    {% if current_user.tenant and current_user.tenant.logo_url %}
-        <img src="{{ current_user.tenant.logo_url }}" style="height:55px;">
+    {% if current_user.tenant and current_user.tenant.logo %}
+        <img src="{{ current_user.tenant.logo }}" style="height:55px;">
     {% endif %}
     <h1>Dashboard <span>{{ current_user.tenant.nome if current_user.tenant else "Barbearia" }}</span></h1>
 </div>
@@ -502,10 +502,10 @@
 
         <form method="POST" action="{{ url_for('tenant.company_settings') }}" enctype="multipart/form-data">
 
-            {% if current_user.tenant.logo_url %}
+            {% if current_user.tenant.logo %}
             <div style="margin-bottom:10px;">
                 <strong>Logo Atual:</strong><br>
-                <img src="{{ current_user.tenant.logo_url }}" style="max-height:120px;">
+                <img src="{{ current_user.tenant.logo }}" style="max-height:120px;">
             </div>
             {% endif %}
 

@@ -39,16 +39,19 @@
 
         {% if tenant.logo %}
             <div style="margin-bottom:10px;">
-                <img src="{{ tenant.logo }}"
-                     alt="Logo da Barbearia"
-                     style="max-height:120px; border-radius:8px; border:1px solid #444;">
+                <img 
+                    src="{{ tenant.logo }}"
+                    alt="Logo da Barbearia"
+                    style="max-height:120px; border-radius:8px; border:1px solid #444; background:#111; padding:6px;"
+                    onerror="this.src='https://via.placeholder.com/250x120?text=Logo+Indisponivel';"
+                >
             </div>
         {% endif %}
 
         <input type="file" name="logo" accept="image/*">
 
         <small style="color:#aaa;">
-            Formatos aceitos: JPG, PNG, WEBP — sua logo será armazenada em nuvem com segurança.
+            Formatos aceitos: JPG, PNG, WEBP — sua logo será armazenada com segurança.
         </small>
     </div>
 
