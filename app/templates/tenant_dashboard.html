@@ -11,9 +11,17 @@
 
     {% if current_user.tenant and current_user.tenant.logo %}
         <img 
-            src="{{ current_user.tenant.logo }}" 
-            alt="Logo"
-            style="max-height:130px; margin-bottom:10px;">
+    src="{{ current_user.tenant.logo }}" 
+    alt="Logo"
+    style="
+        max-height:130px;
+        width:auto;
+        max-width:100%;
+        object-fit:contain;
+        display:block;
+        margin:0 auto 10px auto;
+    ">
+
     {% endif %}
 
     <h1>
