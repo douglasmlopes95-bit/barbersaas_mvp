@@ -37,26 +37,30 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
-    # FIX — GARANTIR COLUNAS SOMENTE NO POSTGRES (Render)
+    # FIX — GARANTIR COLUNAS APENAS QUANDO HOUVER DB
     # =====================================================
     try:
-        from sqlalchemy import text
         with app.app_context():
 
-            engine_name = db.session.bind.dialect.name
-
-            if engine_name == "postgresql":
-                # -------- SERVICES.excluido ----------
-                db.session.execute(text("""
-                    ALTER TABLE services
-                    ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE;
-                """))
-
-                db.session.commit()
-                print("✔ Patch aplicado no Postgres (services.excluido)")
-
+            # Se por algum motivo ainda não há bind, não tenta
+            if not db.session.bind:
+                print("ℹ Nenhum DB conectado ainda — ignorando patch")
             else:
-                print("ℹ Patch ignorado (não é Postgres)")
+                engine_name = db.session.bind.dialect.name
+
+                if engine_name == "postgresql":
+                    from sqlalchemy import text
+
+                    # -------- SERVICES.excluido ----------
+                    db.session.execute(text("""
+                        ALTER TABLE services
+                        ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE;
+                    """))
+
+                    db.session.commit()
+                    print("✔ Patch aplicado no Postgres (services.excluido)")
+                else:
+                    print("ℹ Patch ignorado (não é Postgres)")
 
     except Exception as e:
         print("⚠ Erro garantindo colunas no banco:", e)
