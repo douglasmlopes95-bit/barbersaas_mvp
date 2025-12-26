@@ -4,7 +4,7 @@ from flask import (
     flash, abort
 )
 from flask_login import login_required, current_user
-    from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import os
@@ -174,7 +174,7 @@ def dashboard():
             return redirect(url_for("tenant.dashboard"))
 
         # -----------------------------
-        # EXCLUIR SERVIÇO (AJUSTADO)
+        # EXCLUIR SERVIÇO (SOFT DELETE)
         # -----------------------------
         if action == "delete_service":
             service = Service.query.get_or_404(
@@ -184,7 +184,6 @@ def dashboard():
             if service.tenant_id != tenant_id:
                 abort(403)
 
-            # Soft delete SEM bloquear
             service.soft_delete()
             db.session.commit()
             flash("Serviço excluído com sucesso", "success")
@@ -346,6 +345,7 @@ def complete_appointment(appointment_id):
 def go_reports():
     return redirect(url_for("tenant_reports.overview"))
 
+
 @tenant_bp.route("/cash")
 @login_required
 def go_cash():
@@ -373,6 +373,7 @@ def toggle_slot(slot_id):
     db.session.commit()
     flash("Status do horário atualizado", "success")
     return redirect(url_for("tenant.dashboard"))
+
 
 @tenant_bp.route("/slot/<int:slot_id>/delete", methods=["POST"])
 @login_required
@@ -417,7 +418,9 @@ def company_settings():
             upload_dir = os.path.join("static", "uploads", "logos")
             os.makedirs(upload_dir, exist_ok=True)
 
-            filename = f"tenant_{tenant.id}_{int(datetime.utcnow().timestamp())}_{filename}"
+            filename = (
+                f"tenant_{tenant.id}_{int(datetime.utcnow().timestamp())}_{filename}"
+            )
             file_path = os.path.join(upload_dir, filename)
 
             file.save(file_path)
