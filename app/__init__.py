@@ -37,23 +37,6 @@ def create_app():
     migrate.init_app(app, db)
 
     # =====================================================
-    # FIX PARA NÃO TRAVAR O RENDER (não bloqueia startup)
-    # =====================================================
-    try:
-        from sqlalchemy import text
-        with app.app_context():
-            db.session.execute(
-                text("""
-                    ALTER TABLE users
-                    ADD COLUMN IF NOT EXISTS excluido BOOLEAN DEFAULT FALSE
-                """)
-            )
-            db.session.commit()
-            print("✔ Coluna 'excluido' garantida no banco de dados")
-    except Exception as e:
-        print("⚠ Erro ao tentar garantir coluna 'excluido':", e)
-
-    # =====================================================
     # REGISTRO DE BLUEPRINTS
     # =====================================================
     from app.auth.routes import auth_bp
@@ -100,6 +83,7 @@ def create_app():
 # FLASK-LOGIN
 # =========================================================
 from app.models.user import User
+
 
 @login_manager.user_loader
 def load_user(user_id):
